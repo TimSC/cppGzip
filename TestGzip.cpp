@@ -2,10 +2,11 @@
 #include <fstream>
 #include <iostream>
 #include "ReadGzip.h"
+#include "EncodeGzip.h"
 
 using namespace std;
 
-void Test(streambuf &st)
+void TestDec(streambuf &st)
 {
 	int testBuffSize = 1024*88;
 	char buff[testBuffSize];
@@ -23,13 +24,38 @@ void Test(streambuf &st)
 	testOut.flush();
 }
 
+void TestEnc(streambuf &st)
+{
+	int testBuffSize = 1024*88;
+	char buff[testBuffSize];
+	ofstream testOut("output.txt.gz", ios::binary);
+	while(st.in_avail()>0)
+	{
+		//cout << st.in_avail() << endl;
+		int len = st.sgetn(buff, testBuffSize-1);
+		buff[len] = '\0';
+		cout << len << ", " << testBuffSize-1 << endl;
+		
+		//cout << buff;
+		testOut.write(buff, len);
+	}
+	testOut.flush();
+}
+
 int main()
 {
+	//Perform decoding
 	std::filebuf fb;
 	fb.open("test.txt.gz", std::ios::in);
 	
 	class DecodeGzip decodeGzip(fb);
+	TestDec(decodeGzip);
+
+	//Perform encoding
+	std::filebuf fb2;
+	fb2.open("input.txt", std::ios::in | std::ios::binary);
 	
-	Test(decodeGzip);
+	class EncodeGzip encodeGzip(fb2);
+	TestEnc(encodeGzip);
 }
 
