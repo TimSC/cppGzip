@@ -1,7 +1,7 @@
 //g++ ReadGzip.cpp TestGzip.cpp -lz -o readgzip
 #include <fstream>
 #include <iostream>
-#include "ReadGzip.h"
+#include "DecodeGzip.h"
 #include "EncodeGzip.h"
 
 using namespace std;

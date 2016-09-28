@@ -1,5 +1,5 @@
-#ifndef _READ_GZIP_H
-#define _READ_GZIP_H
+#ifndef _DECODE_GZIP_H
+#define _DECODE_GZIP_H
 
 #include <zlib.h>
 #include <streambuf>
@@ -27,5 +27,5 @@ public:
 	virtual ~DecodeGzip();
 };
 
-#endif //_READ_GZIP_H
+#endif //_DECODE_GZIP_H
 

@@ -1,3 +1,3 @@
 all:
-	g++ ReadGzip.cpp EncodeGzip.cpp TestGzip.cpp -lz -o testgzip
+	g++ DecodeGzip.cpp EncodeGzip.cpp TestGzip.cpp -Wall -lz -o testgzip
 

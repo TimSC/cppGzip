@@ -5,7 +5,7 @@
 #include <sstream>
 #include <stdlib.h>
 #include <string.h>
-#include "ReadGzip.h"
+#include "DecodeGzip.h"
 using namespace std;
 #define MAGIC_NUM_FOR_GZIP 16
 
@@ -93,7 +93,6 @@ DecodeGzip::~DecodeGzip()
 
 streamsize DecodeGzip::xsgetn (char* s, streamsize n)
 {	
-	int err = Z_OK;
 	char *outputBuffCursor = s;
 	streamsize outputTotal = 0;
 

@@ -96,7 +96,6 @@ EncodeGzip::~EncodeGzip()
 
 streamsize EncodeGzip::xsgetn (char* s, streamsize n)
 {	
-	int err = Z_OK;
 	char *outputBuffCursor = s;
 	streamsize outputTotal = 0;
 
