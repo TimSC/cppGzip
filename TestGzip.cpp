@@ -26,18 +26,21 @@ void TestDec(streambuf &st)
 
 void TestEnc(streambuf &st)
 {
-	int testBuffSize = 1024*88;
+	int testBuffSize = 1024*77;
 	char buff[testBuffSize];
 	ofstream testOut("output.txt.gz", ios::binary);
+	unsigned outlen = 0;
 	while(st.in_avail()>0)
 	{
 		//cout << st.in_avail() << endl;
 		int len = st.sgetn(buff, testBuffSize-1);
 		buff[len] = '\0';
-		cout << len << ", " << testBuffSize-1 << endl;
-		
+
 		//cout << buff;
 		testOut.write(buff, len);
+		outlen += len;
+		cout << len << "\t" << testBuffSize-1 << "\t" << outlen << endl;
+		
 	}
 	testOut.flush();
 }

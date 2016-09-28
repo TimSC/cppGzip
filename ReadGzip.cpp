@@ -148,7 +148,6 @@ streamsize DecodeGzip::showmanyc()
 		return 1;
 	if(d_stream.avail_in > 0)
 		return 1;
-	return inStream.in_avail() > 1;
+	return inStream.in_avail() > 1 || !decodeDone;
 }
-
 
