@@ -46,7 +46,7 @@ int main()
 {
 	//Perform decoding
 	std::filebuf fb;
-	fb.open("test.txt.gz", std::ios::in);
+	fb.open("test.txt.gz", std::ios::in | std::ios::binary);
 	
 	class DecodeGzip decodeGzip(fb);
 	TestDec(decodeGzip);
@@ -55,7 +55,7 @@ int main()
 	std::filebuf fb2;
 	fb2.open("input.txt", std::ios::in | std::ios::binary);
 	
-	class EncodeGzip encodeGzip(fb2);
+	class EncodeGzip encodeGzip(fb2, Z_DEFAULT_COMPRESSION);
 	TestEnc(encodeGzip);
 }
 

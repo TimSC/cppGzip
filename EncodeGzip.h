@@ -8,12 +8,12 @@ class EncodeGzip : public std::streambuf
 {
 protected:
 	char *readBuff;
-	char *decodeBuff;
+	char *encodeBuff;
 	std::streambuf &inStream;
 	z_stream d_stream;
-	bool decodeDone;
-	char *decodeBuffCursor;
-	std::streamsize readBuffSize, decodeBuffSize;
+	bool encodeDone;
+	char *encodeBuffCursor;
+	std::streamsize readBuffSize, encodeBuffSize;
 
 	void Encode();
 
@@ -23,7 +23,8 @@ protected:
 	std::streamsize showmanyc();
 
 public:
-	EncodeGzip(std::streambuf &inStream, std::streamsize readBuffSize = 1024*128, std::streamsize decodeBuffSize = 1024*128);
+	EncodeGzip(std::streambuf &inStream, int compressionLevel = Z_DEFAULT_COMPRESSION, 
+		std::streamsize readBuffSize = 1024*128, std::streamsize encodeBuffSize = 1024*128);
 	virtual ~EncodeGzip();
 };
 
