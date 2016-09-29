@@ -28,21 +28,23 @@ void TestEnc(streambuf &st)
 {
 	int testBuffSize = 1024*77;
 	char buff[testBuffSize];
-	ofstream testOut("output.txt.gz", ios::binary);
+	ifstream testIn("input.txt", ios::binary);
+	if (testIn.fail())
+	{
+		throw runtime_error("Failed to open input file.");		
+	}
 	unsigned outlen = 0;
-	while(st.in_avail()>0)
+	while(!testIn.eof())
 	{
 		//cout << st.in_avail() << endl;
-		int len = st.sgetn(buff, testBuffSize-1);
-		buff[len] = '\0';
+		testIn.read(buff, testBuffSize);
+		streamsize len = testIn.gcount();
 
 		//cout << buff;
-		testOut.write(buff, len);
+		st.sputn(buff, len);
 		outlen += len;
 		cout << len << "\t" << testBuffSize-1 << "\t" << outlen << endl;
-		
 	}
-	testOut.flush();
 }
 
 int main()
@@ -56,9 +58,10 @@ int main()
 
 	//Perform encoding
 	std::filebuf fb2;
-	fb2.open("input.txt", std::ios::in | std::ios::binary);
+	fb2.open("output.txt.gz", std::ios::out | std::ios::binary);
 	
-	class EncodeGzip encodeGzip(fb2, Z_DEFAULT_COMPRESSION);
-	TestEnc(encodeGzip);
+	class EncodeGzip *encodeGzip = new EncodeGzip(fb2, Z_DEFAULT_COMPRESSION);
+	TestEnc(*encodeGzip);
+	delete encodeGzip;
 }
 
