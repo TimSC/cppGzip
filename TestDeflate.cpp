@@ -25,27 +25,9 @@ void TestDec(streambuf &st)
 
 void TestEnc(streambuf &st)
 {
-	int testBuffSize = 1024*77;
-	char buff[testBuffSize];
-	stringstream ss;
-	unsigned outlen = 0;
-	while(st.in_avail()>0)
-	{
-		//cout << st.in_avail() << endl;
-		int len = st.sgetn(buff, testBuffSize-1);
-		buff[len] = '\0';
+	char testdata2[] = "The quick brown fox jumped over the lazy brown cow.";
 
-		//cout << buff;
-		ss.write(buff, len);
-		outlen += len;
-		
-	}
-	string result = ss.str();
-	for(size_t i=0;i<result.size();i++)
-	{
-		cout << std::hex << (unsigned int)(unsigned char)result[i] << ",";
-	}
-	cout << endl;
+	st.sputn(testdata2, sizeof(testdata2));
 }
 
 int main()
@@ -64,11 +46,14 @@ int main()
 	class DecodeDeflate decodeDeflate(buffer);
 	TestDec(decodeDeflate);
 
-	const char testdata2[] = "The quick brown fox jumped over the lazy brown cow.";
 	std::stringbuf buffer2;
-	buffer2.sputn ((char *)testdata2, sizeof(testdata2));
+	class EncodeDeflate *encodeDeflate = new class EncodeDeflate(buffer2);
+	TestEnc(*encodeDeflate);
+	delete encodeDeflate;
 
-	class EncodeDeflate encodeDeflate(buffer2);
-	TestEnc(encodeDeflate);
+	string result = buffer2.str();
+	for(size_t i=0;i<result.size();i++)
+		cout << std::hex << (unsigned int)(unsigned char)result[i] << ",";
+	cout << endl;
 }
 

@@ -16,8 +16,8 @@ public:
 class EncodeDeflate : public EncodeGzip
 {
 public:
-	EncodeDeflate(std::streambuf &inStream, int compressionLevel = Z_DEFAULT_COMPRESSION, int windowBits = MAX_WBITS, std::streamsize readBuffSize  = 1024*128, std::streamsize encodeBuffSize = 1024*128, int windowSize = MAX_WBITS) :
-		EncodeGzip(inStream, compressionLevel, readBuffSize, encodeBuffSize, windowSize)
+	EncodeDeflate(std::streambuf &outStream, int compressionLevel = Z_DEFAULT_COMPRESSION, int windowBits = MAX_WBITS, std::streamsize readBuffSize  = 1024*128, std::streamsize encodeBuffSize = 1024*128, int windowSize = MAX_WBITS) :
+		EncodeGzip(outStream, compressionLevel, readBuffSize, encodeBuffSize, windowSize)
 	{}
 	virtual ~EncodeDeflate() {}
 };

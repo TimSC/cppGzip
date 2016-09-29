@@ -38,21 +38,24 @@ EncodeGzip::EncodeGzip(std::streambuf &outStream, int compressionLevel, std::str
 EncodeGzip::~EncodeGzip()
 {
 	//Flush
-	int err = deflate(&d_stream, Z_FINISH);
-	while(err == Z_OK)
+	if(!firstInputData)
 	{
+		int err = deflate(&d_stream, Z_FINISH);
+		while(err == Z_OK)
+		{
+			CopyDataToOutput();
+			err = deflate(&d_stream, Z_FINISH);
+		}
+		if(err != Z_STREAM_END)
+			throw runtime_error(ConcatStr2("deflate failed: ", zError(err)));
+
 		CopyDataToOutput();
-		err = deflate(&d_stream, Z_FINISH);
+
+		//Clean up
+		err = deflateEnd(&d_stream);
+		if(err != Z_OK)
+			throw runtime_error(ConcatStr2("deflateEnd failed: ", zError(err)));
 	}
-	if(err != Z_STREAM_END)
-		throw runtime_error(ConcatStr2("deflate failed: ", zError(err)));
-
-	CopyDataToOutput();
-
-	//Clean up
-	err = deflateEnd(&d_stream);
-	if(err != Z_OK)
-		throw runtime_error(ConcatStr2("deflateEnd failed: ", zError(err)));
 
 	delete [] this->inputBuff;
 	delete [] this->encodeBuff;
