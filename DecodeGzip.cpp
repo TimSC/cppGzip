@@ -7,7 +7,6 @@
 #include <string.h>
 #include "DecodeGzip.h"
 using namespace std;
-#define MAGIC_NUM_FOR_GZIP 16
 
 std::string ConcatStr(const char *a, const char *b)
 {
@@ -16,7 +15,7 @@ std::string ConcatStr(const char *a, const char *b)
 	return out;
 }
 
-DecodeGzip::DecodeGzip(std::streambuf &inStream, std::streamsize readBuffSize, std::streamsize decodeBuffSize) : 
+DecodeGzip::DecodeGzip(std::streambuf &inStream, std::streamsize readBuffSize, std::streamsize decodeBuffSize, int windowBits) : 
 	inStream(inStream), decodeDone(false),
 	readBuffSize(readBuffSize), decodeBuffSize(decodeBuffSize)
 {
@@ -35,7 +34,7 @@ DecodeGzip::DecodeGzip(std::streambuf &inStream, std::streamsize readBuffSize, s
 	d_stream.avail_out = (uInt)decodeBuffSize;
 
 	//cout << "read " << d_stream.avail_in << endl;
-	int err = inflateInit2(&d_stream, MAGIC_NUM_FOR_GZIP+MAX_WBITS);
+	int err = inflateInit2(&d_stream, windowBits);
 	if(err != Z_OK)
 		throw runtime_error(ConcatStr("inflateInit2 failed: ", zError(err)));
 	decodeBuffCursor = decodeBuff;
@@ -149,4 +148,5 @@ streamsize DecodeGzip::showmanyc()
 		return 1;
 	return inStream.in_avail() > 1 || !decodeDone;
 }
+
 

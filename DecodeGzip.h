@@ -3,6 +3,7 @@
 
 #include <zlib.h>
 #include <streambuf>
+#define DEC_MAGIC_NUM_FOR_GZIP 16
 
 class DecodeGzip : public std::streambuf
 {
@@ -23,7 +24,9 @@ protected:
 	std::streamsize showmanyc();
 
 public:
-	DecodeGzip(std::streambuf &inStream, std::streamsize readBuffSize = 1024*128, std::streamsize decodeBuffSize = 1024*128);
+	DecodeGzip(std::streambuf &inStream, 
+		std::streamsize readBuffSize = 1024*128, std::streamsize decodeBuffSize = 1024*128,
+				int windowBits = MAX_WBITS+DEC_MAGIC_NUM_FOR_GZIP);
 	virtual ~DecodeGzip();
 };
 

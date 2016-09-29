@@ -3,6 +3,7 @@
 
 #include <zlib.h>
 #include <streambuf>
+#define ENC_MAGIC_NUM_FOR_GZIP 16
 
 class EncodeGzip : public std::streambuf
 {
@@ -23,8 +24,10 @@ protected:
 	std::streamsize showmanyc();
 
 public:
-	EncodeGzip(std::streambuf &inStream, int compressionLevel = Z_DEFAULT_COMPRESSION, 
-		std::streamsize readBuffSize = 1024*128, std::streamsize encodeBuffSize = 1024*128);
+	EncodeGzip(std::streambuf &inStream,
+		int compressionLevel = Z_DEFAULT_COMPRESSION, 
+		std::streamsize readBuffSize = 1024*128, std::streamsize encodeBuffSize = 1024*128,
+		int windowBits = MAX_WBITS+ENC_MAGIC_NUM_FOR_GZIP);
 	virtual ~EncodeGzip();
 };
 
