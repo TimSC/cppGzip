@@ -49,7 +49,8 @@ int main()
 	std::stringbuf buffer2;
 	class EncodeDeflate *encodeDeflate = new class EncodeDeflate(buffer2);
 	TestEnc(*encodeDeflate);
-	delete encodeDeflate;
+	delete encodeDeflate; //Note that deleting the object causes it to flush and complete the compressed output.
+	//Reading the result before this is not likely to work.
 
 	string result = buffer2.str();
 	for(size_t i=0;i<result.size();i++)
