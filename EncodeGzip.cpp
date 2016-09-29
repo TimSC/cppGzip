@@ -15,20 +15,19 @@ std::string ConcatStr2(const char *a, const char *b)
 	return out;
 }
 
-EncodeGzip::EncodeGzip(std::streambuf &outStream, int compressionLevel, std::streamsize inputBuffSize, std::streamsize encodeBuffSize, int windowBits) : 
-	outStream(outStream), inputBuffSize(inputBuffSize), encodeBuffSize(encodeBuffSize), 
+EncodeGzip::EncodeGzip(std::streambuf &outStream, int compressionLevel, std::streamsize encodeBuffSize, int windowBits) : 
+	outStream(outStream), encodeBuffSize(encodeBuffSize), 
 	firstInputData(true), compressionLevel(compressionLevel), windowBits(windowBits)
 {
 	if(compressionLevel < Z_DEFAULT_COMPRESSION && compressionLevel > Z_BEST_COMPRESSION)
 		throw invalid_argument("Invalid compression level");
 
-	this->inputBuff = new char[inputBuffSize];
 	this->encodeBuff = new char[encodeBuffSize];
 
 	d_stream.zalloc = (alloc_func)NULL;
 	d_stream.zfree = (free_func)NULL;
 	d_stream.opaque = (voidpf)NULL;
-	d_stream.next_in  = (Bytef*)this->inputBuff;
+	d_stream.next_in  = (Bytef*)NULL;
 	d_stream.avail_in = (uInt)0; //Input starts as empty
 	d_stream.next_out = (Bytef*)this->encodeBuff;
 	d_stream.avail_out = (uInt)encodeBuffSize;
@@ -57,7 +56,6 @@ EncodeGzip::~EncodeGzip()
 			throw runtime_error(ConcatStr2("deflateEnd failed: ", zError(err)));
 	}
 
-	delete [] this->inputBuff;
 	delete [] this->encodeBuff;
 }
 
