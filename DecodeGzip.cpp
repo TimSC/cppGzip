@@ -43,7 +43,7 @@ DecodeGzip::DecodeGzip(std::streambuf &inStream, std::streamsize readBuffSize, s
 void DecodeGzip::Decode()
 {
 	int err = Z_OK;
-	while(inStream.in_avail() > 1)
+	while(inStream.in_avail() > 1 || d_stream.avail_in > 0)
 	{
 		if(d_stream.avail_in == 0 && inStream.in_avail() > 1)
 		{
