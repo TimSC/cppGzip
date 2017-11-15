@@ -36,6 +36,15 @@ EncodeGzip::EncodeGzip(std::streambuf &outStream, int compressionLevel, std::str
 
 EncodeGzip::~EncodeGzip()
 {
+	//Handle case of zero length content
+	if(firstInputData)
+	{
+		int err = deflateInit2(&d_stream, compressionLevel, Z_DEFLATED, windowBits, 8, Z_DEFAULT_STRATEGY);
+		if(err != Z_OK)
+			throw runtime_error(ConcatStr2("deflateInit failed: ", zError(err)));
+		firstInputData = false;
+	}
+
 	//Flush
 	if(!firstInputData)
 	{
