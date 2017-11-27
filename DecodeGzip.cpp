@@ -149,4 +149,45 @@ streamsize DecodeGzip::showmanyc()
 	return inStream.in_avail() > 1;
 }
 
+// **************************************
+
+void DecodeGzipQuick(std::streambuf &fb, std::streambuf &out)
+{
+	class DecodeGzip decodeGzip(fb);
+
+	int buffSize = 1024*100;
+	char buff[buffSize];
+	while(decodeGzip.in_avail()>0)
+	{
+		int len = decodeGzip.sgetn(buff, buffSize-1);
+		buff[len] = '\0';
+		
+		out.sputn(buff, len);
+	}
+}
+
+void DecodeGzipQuick(std::string &data, std::string &out)
+{
+	std::stringbuf sb(data), outBuff(out);
+	DecodeGzipQuick(sb, outBuff);
+}
+
+void DecodeGzipQuick(std::string &data, std::streambuf &outBuff)
+{
+	std::stringbuf sb(data);
+	DecodeGzipQuick(sb, outBuff);
+}
+
+void DecodeGzipQuick(std::streambuf &inBuff, std::string &out)
+{
+	std::stringbuf outBuff(out);
+	DecodeGzipQuick(inBuff, outBuff);
+}
+
+void DecodeGzipQuickFromFilename(const std::string &fina, std::string &out)
+{
+	std::filebuf infi;
+	infi.open(fina.c_str(), std::ios::in | std::ios::binary);
+	DecodeGzipQuick(infi, out);
+}
 

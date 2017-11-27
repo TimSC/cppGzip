@@ -110,3 +110,41 @@ int EncodeGzip::overflow (int c)
 	return EOF;
 }
 
+// **********************************************
+
+void EncodeGzipQuick(std::streambuf &fb, std::streambuf &out)
+{
+	class EncodeGzip encodeGzip(out);	
+
+	int testBuffSize = 1024*100;
+	char buff[testBuffSize];
+	ifstream testIn("input.txt", ios::binary);
+	unsigned outlen = 0;
+	while(fb.in_avail()>0)
+	{
+		testIn.read(buff, testBuffSize);
+		streamsize len = testIn.gcount();
+
+		encodeGzip.sputn(buff, len);
+		outlen += len;
+	}
+}
+
+void EncodeGzipQuick(std::string &inStr, std::string &outStr)
+{
+	stringbuf inBuff(inStr), outBuff(outStr);
+	EncodeGzipQuick(inBuff, outBuff);
+}
+
+void EncodeGzipQuick(std::streambuf &inBuff, std::string &outStr)
+{
+	stringbuf outBuff(outStr);
+	EncodeGzipQuick(inBuff, outBuff);
+}
+
+void EncodeGzipQuick(std::string &inStr, std::streambuf &outBuff)
+{
+	stringbuf inBuff(inStr);
+	EncodeGzipQuick(inBuff, outBuff);
+}
+

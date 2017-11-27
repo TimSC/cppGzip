@@ -30,5 +30,12 @@ public:
 	virtual ~DecodeGzip();
 };
 
+///One shot decoding of small files
+void DecodeGzipQuick(std::streambuf &fb, std::streambuf &out);
+void DecodeGzipQuick(std::string &data, std::string &out);
+void DecodeGzipQuick(std::string &data, std::streambuf &outBuff);
+void DecodeGzipQuick(std::streambuf &inBuff, std::string &out);
+void DecodeGzipQuickFromFilename(const std::string &fina, std::string &out);
+
 #endif //_DECODE_GZIP_H
 

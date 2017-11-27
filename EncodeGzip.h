@@ -30,5 +30,11 @@ public:
 	virtual ~EncodeGzip();
 };
 
+//Simple one shot encoding of small files
+void EncodeGzipQuick(std::streambuf &fb, std::streambuf &out);
+void EncodeGzipQuick(std::string &inStr, std::string &outStr);
+void EncodeGzipQuick(std::streambuf &inBuff, std::string &outStr);
+void EncodeGzipQuick(std::string &inStr, std::streambuf &outBuff);
+
 #endif //_ENCODE_GZIP_H
 
