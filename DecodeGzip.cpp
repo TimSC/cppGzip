@@ -168,8 +168,9 @@ void DecodeGzipQuick(std::streambuf &fb, std::streambuf &out)
 
 void DecodeGzipQuick(std::string &data, std::string &out)
 {
-	std::stringbuf sb(data), outBuff(out);
+	std::stringbuf sb(data), outBuff;
 	DecodeGzipQuick(sb, outBuff);
+	out = outBuff.str();
 }
 
 void DecodeGzipQuick(std::string &data, std::streambuf &outBuff)
@@ -180,8 +181,9 @@ void DecodeGzipQuick(std::string &data, std::streambuf &outBuff)
 
 void DecodeGzipQuick(std::streambuf &inBuff, std::string &out)
 {
-	std::stringbuf outBuff(out);
+	std::stringbuf outBuff;
 	DecodeGzipQuick(inBuff, outBuff);
+	out = outBuff.str();
 }
 
 void DecodeGzipQuickFromFilename(const std::string &fina, std::string &out)

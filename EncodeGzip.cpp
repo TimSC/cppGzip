@@ -132,14 +132,16 @@ void EncodeGzipQuick(std::streambuf &fb, std::streambuf &out)
 
 void EncodeGzipQuick(std::string &inStr, std::string &outStr)
 {
-	stringbuf inBuff(inStr), outBuff(outStr);
+	stringbuf inBuff(inStr), outBuff;
 	EncodeGzipQuick(inBuff, outBuff);
+	outStr = outBuff.str();
 }
 
 void EncodeGzipQuick(std::streambuf &inBuff, std::string &outStr)
 {
-	stringbuf outBuff(outStr);
+	stringbuf outBuff;
 	EncodeGzipQuick(inBuff, outBuff);
+	outStr = outBuff.str();
 }
 
 void EncodeGzipQuick(std::string &inStr, std::streambuf &outBuff)

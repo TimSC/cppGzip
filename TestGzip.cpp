@@ -25,5 +25,11 @@ int main()
 	fb2.open("output.txt.gz", std::ios::out | std::ios::binary);
 	
 	EncodeGzipQuick(testIn, fb2);
+
+	cout << "Decode from file" << endl;
+	std::string testOut2;
+	DecodeGzipQuickFromFilename("test.txt.gz", testOut2);
+	cout << testOut2 << endl;
 }
+
 
