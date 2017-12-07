@@ -36,6 +36,9 @@ EncodeGzip::EncodeGzip(std::streambuf &outStream, int compressionLevel, std::str
 
 EncodeGzip::~EncodeGzip()
 {
+	d_stream.next_in  = (Bytef*)NULL;
+	d_stream.avail_in = (uInt)0;
+
 	//Handle case of zero length content
 	if(firstInputData)
 	{
