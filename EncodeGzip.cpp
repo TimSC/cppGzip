@@ -75,9 +75,12 @@ void EncodeGzip::CopyDataToOutput()
 {
 	//Copy result to output
 	streamsize sizeToWrite = encodeBuffSize - d_stream.avail_out;
-	streamsize written = outStream.sputn(this->encodeBuff, sizeToWrite);
-	if(sizeToWrite != written)
-		throw runtime_error("Could not write entire output");
+	streamsize i=0;
+	while(i<sizeToWrite)
+	{
+		streamsize written = outStream.sputn(&this->encodeBuff[i], sizeToWrite-i);
+		i += written;
+	}
 	d_stream.next_out = (Bytef*)this->encodeBuff;
 	d_stream.avail_out = (uInt)encodeBuffSize;
 }
