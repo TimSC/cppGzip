@@ -13,7 +13,7 @@ int main()
 	time_t seed = time( NULL );
 	cout << "seed " << seed << endl;
 	srand( seed );
-/*
+
 	size_t si = 50*1024*1024 + rand() % (50*1024*1024);
 	string randStr;
 	randStr.resize(si);
@@ -31,19 +31,18 @@ int main()
 	string encString = encbuff.str();
 	
 	cout << "Enc size " << encString.size() << endl;
-
+/*
 	std::filebuf fb;
 	fb.open("output.gz", std::ios::out | std::ios::binary);
-	fb.sputn(encString.c_str(), encString.size());*/
+	fb.sputn(encString.c_str(), encString.size());
 
 	std::filebuf testIn;
 	testIn.open("output.gz", std::ios::in | std::ios::binary );
-
+*/
 	cout << "Decode large random string in small chunks" << endl;
-	//stringbuf encString4(testIn);
-	//encString4.pubseekpos(0);
+	stringbuf encStringBuff(encString);
 
-	class DecodeGzip decodegzip2(testIn);
+	class DecodeGzip decodegzip2(encStringBuff);
 	char tmpbuff2[1024];
 	string decBuff2;
 	while(decodegzip2.in_avail()>0)
@@ -65,15 +64,14 @@ int main()
 	}
 	cout << "dec size " << decBuff3.size() << endl;
 
-	testIn.pubseekpos(0);
+	encStringBuff.pubseekpos(0);
 	DecodeGzipIndex index;
-	CreateDecodeGzipIndex(testIn, index);
+	CreateDecodeGzipIndex(encStringBuff, index);
 	cout << "index size " << index.size() << endl;
 
 	//Try fast seek
-	testIn.pubseekpos(0);
-	class DecodeGzipFastSeek decfs(testIn, index);
-	//class DecodeGzip decfs(testIn);
+	encStringBuff.pubseekpos(0);
+	class DecodeGzipFastSeek decfs(encStringBuff, index);
 
 	cout << "seek pos " << decfs.pubseekpos(randSeekPos) << endl;
 
@@ -89,11 +87,6 @@ int main()
 	decBuff3 = decBuff3.substr(0, 1024);
 	decBuff4 = decBuff4.substr(0, 1024);
 	cout << "Compare sections decoded using two methods: " << (int)(decBuff3 == decBuff4) << endl;
-
-	/*if(decBuff2 == randStr)
-		cout << "OK, strings match" << endl << endl;
-	else
-		cout << "ERROR: strings don't match" << endl << endl;*/
 	
 }
 
