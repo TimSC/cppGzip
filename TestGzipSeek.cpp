@@ -13,8 +13,9 @@ void RunGzipSeekTests()
 	time_t seed = time( NULL );
 	cout << "seed " << seed << endl;
 	srand( seed );
+	const int testReadSize = 64 + rand() % 1024;
 
-	size_t si = 20*1024*1024 + rand() % (10*1024*1024);
+	size_t si = testReadSize + rand() % (20*1024*1024);;
 	string randStr;
 	randStr.resize(si);
 	for(size_t i=0; i<randStr.size()-1; i++)
@@ -43,7 +44,8 @@ void RunGzipSeekTests()
 	stringbuf encStringBuff(encString);
 
 	class DecodeGzip decodegzip2(encStringBuff);
-	char tmpbuff2[1024];
+	int tmpBuffSize = 1 + (rand() % 5000);
+	char tmpbuff2[tmpBuffSize];
 	string decBuff2;
 	while(decodegzip2.in_avail()>0)
 	{
@@ -53,14 +55,14 @@ void RunGzipSeekTests()
 	cout << "dec size " << decBuff2.size() << endl;
 
 	//Try naive seek
-	int randSeekPos = rand() % (10*1024*1024);
-	if(randSeekPos >= si - 1024)
-		randSeekPos = si - 1024;
+	int randSeekPos = rand() % si;
+	if(randSeekPos >= si - testReadSize)
+		randSeekPos = si - testReadSize;
 
 	cout << "seek pos " << decodegzip2.pubseekpos(randSeekPos) << endl;
 
 	string decBuff3;
-	while(decodegzip2.in_avail()>0 and decBuff3.length()<1024)
+	while(decodegzip2.in_avail()>0 and decBuff3.length()<testReadSize)
 	{
 		size_t decLen2 = decodegzip2.sgetn(tmpbuff2, rand() % sizeof(tmpbuff2));
 		decBuff3.append(tmpbuff2, decLen2);
@@ -79,7 +81,7 @@ void RunGzipSeekTests()
 	cout << "seek pos " << decfs.pubseekpos(randSeekPos) << endl;
 
 	string decBuff4;
-	while(decfs.in_avail()>0 and decBuff4.length()<1024)
+	while(decfs.in_avail()>0 and decBuff4.length()<testReadSize)
 	{
 		size_t decLen2 = decfs.sgetn(tmpbuff2, rand() % sizeof(tmpbuff2));
 		decBuff4.append(tmpbuff2, decLen2);
@@ -87,8 +89,8 @@ void RunGzipSeekTests()
 	cout << "dec size " << decBuff4.size() << endl;
 	
 	//Cut random sections to common size and compare
-	decBuff3 = decBuff3.substr(0, 1024);
-	decBuff4 = decBuff4.substr(0, 1024);
+	decBuff3 = decBuff3.substr(0, testReadSize);
+	decBuff4 = decBuff4.substr(0, testReadSize);
 	int compareResult = (decBuff3 == decBuff4);
 	cout << "Compare sections decoded using two methods: " << compareResult << endl;
 	if(!compareResult) exit(0);
@@ -96,6 +98,6 @@ void RunGzipSeekTests()
 	
 int main()
 {
-	RunGzipSeekTests();
+	while(1) RunGzipSeekTests();
 }
 
