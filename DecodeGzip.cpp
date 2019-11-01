@@ -77,9 +77,10 @@ void DecodeGzip::Decode()
 		throw runtime_error("Internal error");
 		
 	int err = Z_OK;
-	while(inStream.in_avail() > 1 || d_stream.avail_in > 0)
+	bool streamEnded = false;
+	while((inStream.in_avail() > 0 || d_stream.avail_in > 0) and !streamEnded)
 	{
-		if(d_stream.avail_in == 0 && inStream.in_avail() > 1)
+		if(d_stream.avail_in == 0 && inStream.in_avail() > 0)
 		{
 			//Read buffer is empty, so read more from file
 			streamsize len = inStream.sgetn(this->readBuff, readBuffSize);
@@ -141,6 +142,11 @@ void DecodeGzip::Decode()
 				decodeBuffCursor = decodeBuff;
 				//Wait for this data to be read by output before doing any more inflating
 				return;
+			}
+			else
+			{
+				streamEnded = true;
+				d_stream.avail_in = 0;
 			}
 		}
 	}
@@ -221,7 +227,7 @@ streamsize DecodeGzip::showmanyc()
 		return 1;
 	if(d_stream.avail_in > 0)
 		return 1;
-	return inStream.in_avail() > 1;
+	return inStream.in_avail() > 0;
 }
 
 streampos DecodeGzip::seekpos (streampos sp, ios_base::openmode which = ios_base::in | ios_base::out)
@@ -283,28 +289,24 @@ DecodeGzipFastSeek::~DecodeGzipFastSeek()
 }
 
 std::streampos DecodeGzipFastSeek::seekpos (std::streampos sp, std::ios_base::openmode which)
-{
-	size_t i=0;
+{	
 	bool found = false;
-	for(;i < index.size();)
+	size_t bestIndex = 0;
+	for(size_t i=0; i < index.size(); i++)
 	{
 		if(index[i].bytesDecodedOut <= sp)
 		{
+			bestIndex = i;
 			found = true;
-			i++;
 		}
-		else
-		{	
-			i--; //Gone too far!
-			break;
-		}
+		else break;
 	}
 
 	//If no index point found, fall back to naive seek	
 	if(!found || sp == 0)
 		return DecodeGzip::seekpos(sp);
 
-	const class DecodeGzipPoint &pt = index[i];
+	const class DecodeGzipPoint &pt = index[bestIndex];
 
 	streampos actualSeekTarget = pt.bytesDecodedIn - (pt.bits ? 1 : 0);
 	streampos isp = inStream.pubseekpos(actualSeekTarget);
@@ -334,8 +336,9 @@ std::streampos DecodeGzipFastSeek::seekpos (std::streampos sp, std::ios_base::op
     ret = inflateSetDictionary(&d_stream, (const Bytef*)pt.window.c_str(), pt.window.length());
 		if(ret != Z_OK)	
 			throw runtime_error("Could not inflateSetDictionary");
-
-	return SkimToStreamPos(pt.bytesDecodedOut, sp);
+	
+	streampos out = SkimToStreamPos(pt.bytesDecodedOut, sp);
+	return out;
 }
 
 // **************************************

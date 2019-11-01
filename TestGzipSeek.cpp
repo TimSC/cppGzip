@@ -14,7 +14,7 @@ int main()
 	cout << "seed " << seed << endl;
 	srand( seed );
 
-	size_t si = 50*1024*1024 + rand() % (50*1024*1024);
+	size_t si = 20*1024*1024 + rand() % (10*1024*1024);
 	string randStr;
 	randStr.resize(si);
 	for(size_t i=0; i<randStr.size()-1; i++)
@@ -54,6 +54,9 @@ int main()
 
 	//Try naive seek
 	int randSeekPos = rand() % (10*1024*1024);
+	if(randSeekPos >= si - 1024)
+		randSeekPos = si - 1024;
+
 	cout << "seek pos " << decodegzip2.pubseekpos(randSeekPos) << endl;
 
 	string decBuff3;
