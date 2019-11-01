@@ -8,7 +8,7 @@
 
 using namespace std;
 
-int main()
+void RunGzipSeekTests()
 {
 	time_t seed = time( NULL );
 	cout << "seed " << seed << endl;
@@ -89,7 +89,13 @@ int main()
 	//Cut random sections to common size and compare
 	decBuff3 = decBuff3.substr(0, 1024);
 	decBuff4 = decBuff4.substr(0, 1024);
-	cout << "Compare sections decoded using two methods: " << (int)(decBuff3 == decBuff4) << endl;
+	int compareResult = (decBuff3 == decBuff4);
+	cout << "Compare sections decoded using two methods: " << compareResult << endl;
+	if(!compareResult) exit(0);
+}
 	
+int main()
+{
+	RunGzipSeekTests();
 }
 

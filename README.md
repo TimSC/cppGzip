@@ -3,4 +3,5 @@ Read and write gzip and deflate from C++ (in a convenient way). It depends on zl
 
 The encoder and decoder are derived from std::streambuf, and can take inputs of arbitrary size. See TestGzip.cpp and TestDeflate.cpp for example usage.
 
+Seeking within a gzip is supported by first calling CreateDecodeGzipIndex. This index can be used to create a DecodeGzipFastSeek object. See TestGzipSeek.cpp for example usage.
 

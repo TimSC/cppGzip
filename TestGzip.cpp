@@ -8,7 +8,7 @@
 
 using namespace std;
 
-int main()
+void RunGzipTests()
 {
 	time_t seed = time( NULL );
 	cout << "seed " << seed << endl;
@@ -66,8 +66,11 @@ int main()
 	if(decBuff == randStr)
 		cout << "OK, strings match" << endl << endl;
 	else
+	{
 		cout << "ERROR: strings don't match" << endl << endl;
-	
+		exit(0);
+	}
+
 	cout << "Encode large random string in small chunks" << endl;
 	stringbuf encbuff2;
 	{
@@ -101,8 +104,14 @@ int main()
 	if(decBuff2 == randStr)
 		cout << "OK, strings match" << endl << endl;
 	else
+	{
 		cout << "ERROR: strings don't match" << endl << endl;
+		exit(0);
+	}
+}
 
-
+int main()
+{
+	RunGzipTests();
 }
 
