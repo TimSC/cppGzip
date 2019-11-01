@@ -42,8 +42,11 @@ int main()
 	cout << "Decode large random string in small chunks" << endl;
 	//stringbuf encString4(testIn);
 	//encString4.pubseekpos(0);
+	std::vector<class DecodeGzipPoint> index;
+
 	class DecodeGzip decodegzip2(testIn);
-	decodegzip2.buildIndex = true;	
+	decodegzip2.buildIndex = true;
+	decodegzip2.indexOut = &index;
 	char tmpbuff2[1024];
 	string decBuff2;
 	while(decodegzip2.in_avail()>0)
@@ -52,6 +55,8 @@ int main()
 		decBuff2.append(tmpbuff2, decLen2);
 	}
 	cout << "dec size " << decBuff2.size() << endl;
+
+	cout << "index size " << index.size() << endl;
 	/*if(decBuff2 == randStr)
 		cout << "OK, strings match" << endl << endl;
 	else

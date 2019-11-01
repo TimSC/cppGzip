@@ -3,7 +3,21 @@
 
 #include <zlib.h>
 #include <streambuf>
+#include <vector>
 #define DEC_MAGIC_NUM_FOR_GZIP 16
+
+class DecodeGzipPoint
+{
+public:
+	size_t bytesDecodedIn;
+	size_t bytesDecodedOut;
+	int bits;
+	std::string window;
+
+	DecodeGzipPoint();
+	DecodeGzipPoint(const DecodeGzipPoint &obj);
+	virtual ~DecodeGzipPoint();
+};
 
 class DecodeGzip : public std::streambuf
 {
@@ -20,6 +34,10 @@ protected:
 	size_t bytesDecodedOut;
 	size_t lastAccessBytes;
 
+	std::string decodeHistoryBuff;
+	size_t historyBytesToStore;
+	size_t maxHistoryBuffSize;
+
 	void Decode();
 
 	//Override streambuf virtual methods
@@ -34,6 +52,7 @@ public:
 	virtual ~DecodeGzip();
 
 	bool buildIndex;
+	std::vector<class DecodeGzipPoint> *indexOut;
 	size_t spanBetweenAccess;
 };
 

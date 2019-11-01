@@ -15,6 +15,28 @@ std::string ConcatStr(const char *a, const char *b)
 	return out;
 }
 
+DecodeGzipPoint::DecodeGzipPoint()
+{
+	bytesDecodedIn = 0;
+	bytesDecodedOut = 0;
+	bits = 0;
+}
+
+DecodeGzipPoint::DecodeGzipPoint(const DecodeGzipPoint &obj)
+{
+	bytesDecodedIn = obj.bytesDecodedIn;
+	bytesDecodedOut = obj.bytesDecodedOut;
+	bits = obj.bits;
+	window = obj.window;
+}
+
+DecodeGzipPoint::~DecodeGzipPoint()
+{
+
+}
+
+// *******************************************
+
 DecodeGzip::DecodeGzip(std::streambuf &inStream, std::streamsize readBuffSize, std::streamsize decodeBuffSize, int windowBits) : 
 	inStream(inStream), decodeDone(false),
 	readBuffSize(readBuffSize), decodeBuffSize(decodeBuffSize)
@@ -44,10 +66,17 @@ DecodeGzip::DecodeGzip(std::streambuf &inStream, std::streamsize readBuffSize, s
 	bytesDecodedOut = 0;
 	spanBetweenAccess = 1024*1024;
 	lastAccessBytes = 0;
+	historyBytesToStore = 32*1024;
+	maxHistoryBuffSize = 1024*1024;
+	indexOut = nullptr;
 }
 
 void DecodeGzip::Decode()
 {
+	//We always start with the decode buffer empty and return as soon as we have anything in there
+	if(d_stream.avail_out != (uInt)decodeBuffSize)
+		throw runtime_error("Internal error");
+		
 	int err = Z_OK;
 	while(inStream.in_avail() > 1 || d_stream.avail_in > 0)
 	{
@@ -63,12 +92,27 @@ void DecodeGzip::Decode()
 		if(d_stream.avail_in > 0)
 		{
 			int old_avail_in = d_stream.avail_in;
+			unsigned char *old_next_in = d_stream.next_in;
 	
 			//Data is waiting to be decoded
 			int flags = Z_NO_FLUSH;
 			if(buildIndex)
 				flags = Z_BLOCK;
+
 			err = inflate(&d_stream, flags);
+
+			if (buildIndex)
+			{
+				//Various things need to be tracked in order to provide random access
+				size_t bytesInLastCall = (old_avail_in - d_stream.avail_in);
+				size_t bytesDecodedLastCall = (decodeBuffSize - d_stream.avail_out);
+				bytesDecodedIn += bytesInLastCall;
+				bytesDecodedOut += bytesDecodedLastCall;
+
+				decodeHistoryBuff.append(decodeBuff, bytesDecodedLastCall);
+				if(decodeHistoryBuff.size() > maxHistoryBuffSize)
+					decodeHistoryBuff = decodeHistoryBuff.substr(decodeHistoryBuff.length()-historyBytesToStore);
+			}
 
 			if (err != Z_STREAM_END)
 			{
@@ -77,13 +121,21 @@ void DecodeGzip::Decode()
 
 				if (buildIndex)
 				{
-					bytesDecodedIn += (old_avail_in - d_stream.avail_in);
-					bytesDecodedOut += (decodeBuffSize - d_stream.avail_out);
-
 					//Check if we need to remember this (for later random access)
 				    if ((d_stream.data_type & 128) && !(d_stream.data_type & 64) && (bytesDecodedOut > spanBetweenAccess+lastAccessBytes))
 					{
-						cout << "ping " << bytesDecodedIn << "," << bytesDecodedOut << endl;
+						int bits = d_stream.data_type & 7;
+						decodeHistoryBuff = decodeHistoryBuff.substr(decodeHistoryBuff.length()-historyBytesToStore);
+						//cout << "ping " << bytesDecodedIn << "," << bytesDecodedOut << "," << bits << "," << ((int)*(unsigned char *)&decodeHistoryBuff[0]) 
+						//	<< "," << ((int)*(unsigned char *)&decodeHistoryBuff[1]) << "," << ((int)*(unsigned char *)&decodeHistoryBuff[historyBytesToStore-1]) << endl;
+						class DecodeGzipPoint pt;
+						pt.bytesDecodedIn = bytesDecodedIn;
+						pt.bytesDecodedOut = bytesDecodedOut;
+						pt.bits = bits;
+						pt.window = decodeHistoryBuff;
+	
+						if(indexOut)
+							indexOut->push_back(pt);
 
 						lastAccessBytes = bytesDecodedOut;
 					}
