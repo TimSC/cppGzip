@@ -22,12 +22,13 @@ DecodeGzip::DecodeGzip(std::streambuf &inStream, std::streamsize readBuffSize, s
 	this->readBuff = new char[readBuffSize];
 	this->decodeBuff = new char[decodeBuffSize];
 
-	decodeBuffCursor = NULL;
+	decodeBuffCursor = nullptr;
+	buildIndex = false;
 	streamsize len = inStream.sgetn(this->readBuff, readBuffSize);
 
-	d_stream.zalloc = (alloc_func)NULL;
-	d_stream.zfree = (free_func)NULL;
-	d_stream.opaque = (voidpf)NULL;
+	d_stream.zalloc = (alloc_func)nullptr;
+	d_stream.zfree = (free_func)nullptr;
+	d_stream.opaque = (voidpf)nullptr;
 	d_stream.next_in  = (Bytef*)this->readBuff;
 	d_stream.avail_in = (uInt)len;
 	d_stream.next_out = (Bytef*)this->decodeBuff;
@@ -38,6 +39,11 @@ DecodeGzip::DecodeGzip(std::streambuf &inStream, std::streamsize readBuffSize, s
 	if(err != Z_OK)
 		throw runtime_error(ConcatStr("inflateInit2 failed: ", zError(err)));
 	decodeBuffCursor = decodeBuff;
+
+	bytesDecodedIn = 0;
+	bytesDecodedOut = 0;
+	spanBetweenAccess = 1024*1024;
+	lastAccessBytes = 0;
 }
 
 void DecodeGzip::Decode()
@@ -56,15 +62,35 @@ void DecodeGzip::Decode()
 
 		if(d_stream.avail_in > 0)
 		{
+			int old_avail_in = d_stream.avail_in;
+	
 			//Data is waiting to be decoded
-			err = inflate(&d_stream, Z_NO_FLUSH);
+			int flags = Z_NO_FLUSH;
+			if(buildIndex)
+				flags = Z_BLOCK;
+			err = inflate(&d_stream, flags);
 
 			if (err != Z_STREAM_END)
 			{
 				if(err != Z_OK)
 					throw runtime_error(ConcatStr("inflate failed: ", zError(err)));
 
+				if (buildIndex)
+				{
+					bytesDecodedIn += (old_avail_in - d_stream.avail_in);
+					bytesDecodedOut += (decodeBuffSize - d_stream.avail_out);
+
+					//Check if we need to remember this (for later random access)
+				    if ((d_stream.data_type & 128) && !(d_stream.data_type & 64) && (bytesDecodedOut > spanBetweenAccess+lastAccessBytes))
+					{
+						cout << "ping " << bytesDecodedIn << "," << bytesDecodedOut << endl;
+
+						lastAccessBytes = bytesDecodedOut;
+					}
+				}
+
 				decodeBuffCursor = decodeBuff;
+				//Wait for this data to be read by output before doing any more inflating
 				return;
 			}
 		}

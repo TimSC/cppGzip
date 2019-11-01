@@ -16,6 +16,10 @@ protected:
 	char *decodeBuffCursor;
 	std::streamsize readBuffSize, decodeBuffSize;
 
+	size_t bytesDecodedIn;
+	size_t bytesDecodedOut;
+	size_t lastAccessBytes;
+
 	void Decode();
 
 	//Override streambuf virtual methods
@@ -28,6 +32,9 @@ public:
 		std::streamsize readBuffSize = 1024*128, std::streamsize decodeBuffSize = 1024*128,
 				int windowBits = MAX_WBITS+DEC_MAGIC_NUM_FOR_GZIP);
 	virtual ~DecodeGzip();
+
+	bool buildIndex;
+	size_t spanBetweenAccess;
 };
 
 ///One shot decoding of small files

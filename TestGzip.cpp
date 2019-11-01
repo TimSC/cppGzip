@@ -58,7 +58,7 @@ int main()
 	cout << "Decode large random string in one shot" << endl;
 	stringbuf encString2(encString);
 	//encString2.pubseekpos(0);
-	class DecodeGzip decodegzip(encString2);	
+	class DecodeGzip decodegzip(encString2);
 	char tmpbuff[si+100];
 	size_t decLen = decodegzip.sgetn(tmpbuff, sizeof(tmpbuff));
 	string decBuff(tmpbuff, decLen);
@@ -85,10 +85,6 @@ int main()
 	}
 	string encString3 = encbuff2.str();
 	cout << "Enc size " << encString3.size() << endl;
-	if(encString == encString3)
-		cout << "OK, encoded data matches" << endl;
-	else
-		cout << "ERROR: encoded data don't match" << endl;
 
 	cout << "Decode large random string in small chunks" << endl;
 	stringbuf encString4(encString3);

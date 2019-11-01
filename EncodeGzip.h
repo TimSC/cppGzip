@@ -16,6 +16,8 @@ protected:
 	bool firstInputData;
 	int compressionLevel;
 	int windowBits;
+	size_t inputBytesEncoded;
+	size_t lastInputBytesFlush;
 
 	void CopyDataToOutput();
 
@@ -28,6 +30,8 @@ public:
 		std::streamsize encodeBuffSize = 1024*128,
 		int windowBits = MAX_WBITS+ENC_MAGIC_NUM_FOR_GZIP);
 	virtual ~EncodeGzip();
+
+	size_t flushEveryNumBytes; //Zero to disable
 };
 
 //Simple one shot encoding of small files

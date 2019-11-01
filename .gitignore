@@ -1,3 +1,4 @@
 testgzip
 testdeflate
-
+testgzipseek
+*.o

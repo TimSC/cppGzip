@@ -32,6 +32,9 @@ EncodeGzip::EncodeGzip(std::streambuf &outStream, int compressionLevel, std::str
 	d_stream.next_out = (Bytef*)this->encodeBuff;
 	d_stream.avail_out = (uInt)encodeBuffSize;
 
+	inputBytesEncoded = 0;
+	lastInputBytesFlush = 0;
+	flushEveryNumBytes = 1*1024*1024;
 }
 
 EncodeGzip::~EncodeGzip()
@@ -101,9 +104,19 @@ streamsize EncodeGzip::xsputn (const char* s, streamsize n)
 
 	while (d_stream.avail_in > 0)
 	{
-		int err = deflate(&d_stream, Z_NO_FLUSH);
+		//Decide if we need to flush
+		bool needToFlush = (flushEveryNumBytes > 0) && (inputBytesEncoded > lastInputBytesFlush + flushEveryNumBytes);
+		int flags = Z_NO_FLUSH;
+		if(needToFlush)
+			flags = Z_BLOCK;
+
+		int err = deflate(&d_stream, flags);
 		if (err != Z_OK && err != Z_STREAM_END)
 			throw runtime_error("deflate failed");
+
+		inputBytesEncoded += n;
+		if(needToFlush)
+			lastInputBytesFlush = inputBytesEncoded;
 
 		CopyDataToOutput();
 	}
