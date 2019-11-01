@@ -39,7 +39,7 @@ DecodeGzipPoint::~DecodeGzipPoint()
 
 DecodeGzip::DecodeGzip(std::streambuf &inStream, std::streamsize readBuffSize, std::streamsize decodeBuffSize, int windowBits) : 
 	inStream(inStream), decodeDone(false),
-	readBuffSize(readBuffSize), decodeBuffSize(decodeBuffSize)
+	readBuffSize(readBuffSize), decodeBuffSize(decodeBuffSize), windowBits(windowBits)
 {
 	this->readBuff = new char[readBuffSize];
 	this->decodeBuff = new char[decodeBuffSize];
@@ -56,7 +56,6 @@ DecodeGzip::DecodeGzip(std::streambuf &inStream, std::streamsize readBuffSize, s
 	d_stream.next_out = (Bytef*)this->decodeBuff;
 	d_stream.avail_out = (uInt)decodeBuffSize;
 
-	//cout << "read " << d_stream.avail_in << endl;
 	int err = inflateInit2(&d_stream, windowBits);
 	if(err != Z_OK)
 		throw runtime_error(ConcatStr("inflateInit2 failed: ", zError(err)));
@@ -86,7 +85,6 @@ void DecodeGzip::Decode()
 			streamsize len = inStream.sgetn(this->readBuff, readBuffSize);
 			d_stream.next_in  = (Bytef*)this->readBuff;
 			d_stream.avail_in = (uInt)len;
-			//cout << "read " << d_stream.avail_in << endl;
 		}
 
 		if(d_stream.avail_in > 0)
@@ -126,8 +124,7 @@ void DecodeGzip::Decode()
 					{
 						int bits = d_stream.data_type & 7;
 						decodeHistoryBuff = decodeHistoryBuff.substr(decodeHistoryBuff.length()-historyBytesToStore);
-						//cout << "ping " << bytesDecodedIn << "," << bytesDecodedOut << "," << bits << "," << ((int)*(unsigned char *)&decodeHistoryBuff[0]) 
-						//	<< "," << ((int)*(unsigned char *)&decodeHistoryBuff[1]) << "," << ((int)*(unsigned char *)&decodeHistoryBuff[historyBytesToStore-1]) << endl;
+
 						class DecodeGzipPoint pt;
 						pt.bytesDecodedIn = bytesDecodedIn;
 						pt.bytesDecodedOut = bytesDecodedOut;
@@ -152,10 +149,6 @@ void DecodeGzip::Decode()
 	err = inflate(&d_stream, Z_FINISH);
 	if(err != Z_OK && err != Z_STREAM_END)
 		throw runtime_error(ConcatStr("inflate failed: ", zError(err)));
-
-	err = inflateEnd(&d_stream);
-	if(err != Z_OK)
-		throw runtime_error(ConcatStr("inflateEnd failed: ", zError(err)));
 	
 	decodeDone = true;
 	decodeBuffCursor = decodeBuff;
@@ -164,6 +157,10 @@ void DecodeGzip::Decode()
 
 DecodeGzip::~DecodeGzip()
 {
+	int err = inflateEnd(&d_stream);
+	if(err != Z_OK)
+		throw runtime_error(ConcatStr("inflateEnd failed: ", zError(err)));
+
 	delete [] this->readBuff;
 	delete [] this->decodeBuff;
 }
@@ -227,6 +224,120 @@ streamsize DecodeGzip::showmanyc()
 	return inStream.in_avail() > 1;
 }
 
+streampos DecodeGzip::seekpos (streampos sp, ios_base::openmode which = ios_base::in | ios_base::out)
+{
+	//Reset to beginning (naive seeking approach)
+	buildIndex = 0;
+	bytesDecodedIn = 0;
+	bytesDecodedOut = 0;
+	lastAccessBytes = 0;
+	decodeDone = false;
+	decodeHistoryBuff.clear();
+	streampos inPos = inStream.pubseekpos(0);
+	if(inPos != 0)
+		throw runtime_error("Could not seek source");
+
+	d_stream.next_in  = (Bytef*)this->readBuff;
+	d_stream.avail_in = (uInt)0;
+	d_stream.next_out = (Bytef*)this->decodeBuff;
+	d_stream.avail_out = (uInt)decodeBuffSize;
+
+	inflateReset2(&d_stream, windowBits);
+	
+	return SkimToStreamPos(0, sp);
+}
+
+streampos DecodeGzip::SkimToStreamPos(std::streampos start, std::streampos sp)
+{
+	//Start decoding until where we want
+	char tmpbuff[decodeBuffSize];
+	size_t totalRead = start;
+	while(this->in_avail()>0 && totalRead < sp)
+	{
+		size_t maxRead = decodeBuffSize;
+		size_t bytesLeftToSeek = sp - totalRead;
+		if(bytesLeftToSeek < maxRead)
+			maxRead = bytesLeftToSeek;
+
+		totalRead += this->sgetn(tmpbuff, maxRead);
+	}
+	return totalRead;
+}
+
+// ************************************************
+
+DecodeGzipFastSeek::DecodeGzipFastSeek(std::streambuf &inStream, 
+	const DecodeGzipIndex &index,
+	std::streamsize readBuffSize, std::streamsize decodeBuffSize,
+	int windowBits):
+
+	DecodeGzip(inStream, readBuffSize, decodeBuffSize, windowBits),
+	index(index)
+{
+
+}
+
+DecodeGzipFastSeek::~DecodeGzipFastSeek()
+{
+
+}
+
+std::streampos DecodeGzipFastSeek::seekpos (std::streampos sp, std::ios_base::openmode which)
+{
+	size_t i=0;
+	bool found = false;
+	for(;i < index.size();)
+	{
+		if(index[i].bytesDecodedOut <= sp)
+		{
+			found = true;
+			i++;
+		}
+		else
+		{	
+			i--; //Gone too far!
+			break;
+		}
+	}
+
+	//If no index point found, fall back to naive seek	
+	if(!found || sp == 0)
+		return DecodeGzip::seekpos(sp);
+
+	const class DecodeGzipPoint &pt = index[i];
+
+	streampos actualSeekTarget = pt.bytesDecodedIn - (pt.bits ? 1 : 0);
+	streampos isp = inStream.pubseekpos(actualSeekTarget);
+	if(isp != actualSeekTarget)
+		throw runtime_error("Could not seek source");
+
+	decodeDone = false;
+	d_stream.next_in  = (Bytef*)this->readBuff;
+	d_stream.avail_in = (uInt)0;
+	d_stream.next_out = (Bytef*)this->decodeBuff;
+	d_stream.avail_out = (uInt)decodeBuffSize;
+
+	//Prepare to resume inflate
+	int ret = inflateReset2(&d_stream, -15);
+	if(ret != Z_OK)	
+		throw runtime_error("Could not inflateReset2");
+	if(pt.bits)
+	{
+		unsigned char val[1];
+		ret = inStream.sgetn((char*)val, 1);
+		if(ret != 1)
+			throw runtime_error("Could not read source");
+		ret = inflatePrime(&d_stream, pt.bits, val[0] >> (8 - pt.bits));
+		if(ret != Z_OK)	
+			throw runtime_error("Could not inflatePrime");
+	}
+    ret = inflateSetDictionary(&d_stream, (const Bytef*)pt.window.c_str(), pt.window.length());
+		if(ret != Z_OK)	
+			throw runtime_error("Could not inflateSetDictionary");
+
+	return SkimToStreamPos(pt.bytesDecodedOut, sp);
+}
+
 // **************************************
 
 void DecodeGzipQuick(std::streambuf &fb, std::streambuf &out)
@@ -269,5 +380,21 @@ void DecodeGzipQuickFromFilename(const std::string &fina, std::string &out)
 	std::filebuf infi;
 	infi.open(fina.c_str(), std::ios::in | std::ios::binary);
 	DecodeGzipQuick(infi, out);
+}
+
+void CreateDecodeGzipIndex(std::streambuf &inStream, 
+	DecodeGzipIndex &out,
+	std::streamsize readBuffSize, std::streamsize decodeBuffSize,
+	int windowBits)
+{
+	class DecodeGzip dec(inStream, readBuffSize, decodeBuffSize, windowBits);
+	dec.buildIndex = true;
+	dec.indexOut = &out;
+	
+	char tmpbuff[decodeBuffSize];
+	while(dec.in_avail()>0)
+	{
+		dec.sgetn(tmpbuff, decodeBuffSize);
+	}
 }
 

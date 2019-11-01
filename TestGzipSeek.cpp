@@ -42,11 +42,8 @@ int main()
 	cout << "Decode large random string in small chunks" << endl;
 	//stringbuf encString4(testIn);
 	//encString4.pubseekpos(0);
-	std::vector<class DecodeGzipPoint> index;
 
 	class DecodeGzip decodegzip2(testIn);
-	decodegzip2.buildIndex = true;
-	decodegzip2.indexOut = &index;
 	char tmpbuff2[1024];
 	string decBuff2;
 	while(decodegzip2.in_avail()>0)
@@ -56,7 +53,43 @@ int main()
 	}
 	cout << "dec size " << decBuff2.size() << endl;
 
+	//Try naive seek
+	int randSeekPos = rand() % (10*1024*1024);
+	cout << "seek pos " << decodegzip2.pubseekpos(randSeekPos) << endl;
+
+	string decBuff3;
+	while(decodegzip2.in_avail()>0 and decBuff3.length()<1024)
+	{
+		size_t decLen2 = decodegzip2.sgetn(tmpbuff2, rand() % sizeof(tmpbuff2));
+		decBuff3.append(tmpbuff2, decLen2);
+	}
+	cout << "dec size " << decBuff3.size() << endl;
+
+	testIn.pubseekpos(0);
+	DecodeGzipIndex index;
+	CreateDecodeGzipIndex(testIn, index);
 	cout << "index size " << index.size() << endl;
+
+	//Try fast seek
+	testIn.pubseekpos(0);
+	class DecodeGzipFastSeek decfs(testIn, index);
+	//class DecodeGzip decfs(testIn);
+
+	cout << "seek pos " << decfs.pubseekpos(randSeekPos) << endl;
+
+	string decBuff4;
+	while(decfs.in_avail()>0 and decBuff4.length()<1024)
+	{
+		size_t decLen2 = decfs.sgetn(tmpbuff2, rand() % sizeof(tmpbuff2));
+		decBuff4.append(tmpbuff2, decLen2);
+	}
+	cout << "dec size " << decBuff4.size() << endl;
+	
+	//Cut random sections to common size and compare
+	decBuff3 = decBuff3.substr(0, 1024);
+	decBuff4 = decBuff4.substr(0, 1024);
+	cout << "Compare sections decoded using two methods: " << (int)(decBuff3 == decBuff4) << endl;
+
 	/*if(decBuff2 == randStr)
 		cout << "OK, strings match" << endl << endl;
 	else
