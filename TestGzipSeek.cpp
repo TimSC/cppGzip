@@ -11,6 +11,7 @@ using namespace std;
 void RunGzipSeekTests()
 {
 	time_t seed = time( NULL );
+
 	cout << "seed " << seed << endl;
 	srand( seed );
 	const int testReadSize = 64 + rand() % 1024;
@@ -56,9 +57,10 @@ void RunGzipSeekTests()
 	int tmpBuffSize2 = 1 + (rand() % 5000);
 	char tmpbuff[tmpBuffSize], tmpbuff2[tmpBuffSize2];
 	string decBuff2;
+
 	while(decodegzip2.in_avail()>0)
 	{
-		size_t decLen2 = decodegzip2.sgetn(tmpbuff, rand() % sizeof(tmpbuff));
+		size_t decLen2 = decodegzip2.sgetn(tmpbuff, rand() % (sizeof(tmpbuff)+1));
 		decBuff2.append(tmpbuff, decLen2);
 	}
 	cout << "dec size " << decBuff2.size() << endl;
@@ -78,7 +80,7 @@ void RunGzipSeekTests()
 	string decBuff3;
 	while(decodegzip2.in_avail()>0 and decBuff3.length()<testReadSize)
 	{
-		size_t decLen2 = decodegzip2.sgetn(tmpbuff, rand() % sizeof(tmpbuff));
+		size_t decLen2 = decodegzip2.sgetn(tmpbuff, rand() % (sizeof(tmpbuff)+1));
 		decBuff3.append(tmpbuff, decLen2);
 	}
 	cout << "dec size " << decBuff3.size() << endl;
@@ -97,7 +99,7 @@ void RunGzipSeekTests()
 	string decBuff4;
 	while(decfs.in_avail()>0 and decBuff4.length()<testReadSize)
 	{
-		size_t decLen2 = decfs.sgetn(tmpbuff2, rand() % sizeof(tmpbuff2));
+		size_t decLen2 = decfs.sgetn(tmpbuff2, rand() % (sizeof(tmpbuff2)+1));
 		decBuff4.append(tmpbuff2, decLen2);
 	}
 	cout << "dec size " << decBuff4.size() << endl;
