@@ -85,6 +85,9 @@ void RunGzipSeekTests()
 	}
 	cout << "dec size " << decBuff3.size() << endl;
 
+	int curPos = decodegzip2.pubseekoff(0, ios_base::cur);
+	if (curPos != randSeekPos + decBuff3.size()) cout << "Seek ended in wrong position" << endl;
+
 	encStringBuff.pubseekpos(0);
 	DecodeGzipIndex index;
 	CreateDecodeGzipIndex(encStringBuff, index);

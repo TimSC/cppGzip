@@ -5,3 +5,4 @@ The encoder and decoder are derived from std::streambuf, and can take inputs of 
 
 Seeking within a gzip is supported by first calling CreateDecodeGzipIndex. This index can be used to create a DecodeGzipFastSeek object. See TestGzipSeek.cpp for example usage.
 
+Also contains a modified libtar that allows in memory encoding and decoding. SeekableTarRead in tar.h supports 

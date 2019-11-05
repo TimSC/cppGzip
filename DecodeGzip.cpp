@@ -100,13 +100,14 @@ void DecodeGzip::Decode()
 
 			err = inflate(&d_stream, flags);
 
+			size_t bytesDecodedLastCall = (decodeBuffSize - d_stream.avail_out);
+			bytesDecodedOut += bytesDecodedLastCall;
+
 			if (buildIndex)
 			{
 				//Various things need to be tracked in order to provide random access
 				size_t bytesInLastCall = (old_avail_in - d_stream.avail_in);
-				size_t bytesDecodedLastCall = (decodeBuffSize - d_stream.avail_out);
 				bytesDecodedIn += bytesInLastCall;
-				bytesDecodedOut += bytesDecodedLastCall;
 
 				decodeHistoryBuff.append(decodeBuff, bytesDecodedLastCall);
 				if(decodeHistoryBuff.size() > maxHistoryBuffSize)
@@ -253,6 +254,18 @@ streampos DecodeGzip::seekpos (streampos sp, ios_base::openmode which = ios_base
 	return SkimToStreamPos(0, sp);
 }
 
+streampos DecodeGzip::seekoff (streamoff off, ios_base::seekdir way,
+                   ios_base::openmode which = ios_base::in | ios_base::out)
+{
+	if(off == 0 and way == ios_base::cur)
+	{
+		streamsize bytesInDecodeBuff = (char *)d_stream.next_out - decodeBuffCursor;
+		return this->bytesDecodedOut - (bytesInDecodeBuff);
+	}
+
+	return -1;
+}
+
 streampos DecodeGzip::SkimToStreamPos(std::streampos start, std::streampos sp)
 {
 	//Start decoding until where we want
@@ -314,6 +327,7 @@ std::streampos DecodeGzipFastSeek::seekpos (std::streampos sp, std::ios_base::op
 		throw runtime_error("Could not seek source");
 
 	decodeDone = false;
+	bytesDecodedOut = pt.bytesDecodedOut;
 	d_stream.next_in  = (Bytef*)this->readBuff;
 	d_stream.avail_in = (uInt)0;
 	d_stream.next_out = (Bytef*)this->decodeBuff;
@@ -384,6 +398,8 @@ void DecodeGzipQuickFromFilename(const std::string &fina, std::string &out)
 	infi.open(fina.c_str(), std::ios::in | std::ios::binary);
 	DecodeGzipQuick(infi, out);
 }
+
+// *********************************************************
 
 void CreateDecodeGzipIndex(std::streambuf &inStream, 
 	DecodeGzipIndex &out,

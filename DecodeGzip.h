@@ -50,6 +50,8 @@ protected:
 	int uflow();
 	std::streamsize showmanyc();
 	std::streampos seekpos (std::streampos sp, std::ios_base::openmode which);
+	std::streampos seekoff (std::streamoff off, std::ios_base::seekdir way,
+                   std::ios_base::openmode which);
 
 public:
 	DecodeGzip(std::streambuf &inStream, 
