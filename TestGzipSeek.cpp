@@ -70,6 +70,13 @@ void RunGzipSeekTests()
 		exit(0);
 	}
 
+	if(rand() % 2 == 0)
+	{
+		//Do random seek to test functionality
+		int randSeekPos = rand() % si;
+		decodegzip2.pubseekpos(randSeekPos);
+	}
+
 	//Try naive seek
 	int randSeekPos = rand() % si;
 	if(randSeekPos >= si - testReadSize)
@@ -97,6 +104,13 @@ void RunGzipSeekTests()
 	encStringBuff.pubseekpos(0);
 	class DecodeGzipFastSeek decfs(encStringBuff, index);
 
+	if(rand() % 2 == 0)
+	{
+		//Do random seek to test functionality
+		int randSeekPos = rand() % si;
+		decfs.pubseekpos(randSeekPos);
+	}
+
 	cout << "seek pos " << decfs.pubseekpos(randSeekPos) << endl;
 
 	string decBuff4;
@@ -107,6 +121,9 @@ void RunGzipSeekTests()
 	}
 	cout << "dec size " << decBuff4.size() << endl;
 	
+	curPos = decfs.pubseekoff(0, ios_base::cur);
+	if (curPos != randSeekPos + decBuff4.size()) cout << "Seek ended in wrong position" << endl;
+
 	//Cut random sections to common size and compare
 	decBuff3 = decBuff3.substr(0, testReadSize);
 	decBuff4 = decBuff4.substr(0, testReadSize);

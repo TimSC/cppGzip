@@ -233,6 +233,11 @@ streamsize DecodeGzip::showmanyc()
 
 streampos DecodeGzip::seekpos (streampos sp, ios_base::openmode which = ios_base::in | ios_base::out)
 {
+	//Forward seek
+	int curPos = this->seekoff(0, ios_base::cur, ios_base::in | ios_base::out);
+	if(sp >= curPos)
+		return SkimToStreamPos(curPos, sp);
+
 	//Reset to beginning (naive seeking approach)
 	buildIndex = 0;
 	bytesDecodedIn = 0;
