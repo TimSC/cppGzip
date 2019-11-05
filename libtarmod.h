@@ -21,14 +21,12 @@ I hacked the original libtar so it supports in memory reading and writing
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <tar.h>
-
-#include <libtar_listhash.h>
+#include "libtarmod_listhash.h"
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-
 
 /* useful constants */
 /* see FIXME note in block.c regarding T_BLOCKSIZE */
@@ -98,7 +96,7 @@ typedef struct
 	int oflags;
 	int options;
 	struct tar_header th_buf;
-	libtar_hash_t *h;
+	libtarmod_hash_t *h;
 	void *opaque;
 
 	/* introduced in libtar 1.2.21 */

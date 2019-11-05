@@ -70,10 +70,10 @@ tar_init(TAR **t, const char *pathname, tartype_t *type,
 	(*t)->opaque = opaque;
 
 	if ((oflags & O_ACCMODE) == O_RDONLY)
-		(*t)->h = libtar_hash_new(256,
-					  (libtar_hashfunc_t)path_hashfunc);
+		(*t)->h = libtarmod_hash_new(256,
+					  (libtarmod_hashfunc_t)path_hashfunc);
 	else
-		(*t)->h = libtar_hash_new(16, (libtar_hashfunc_t)dev_hash);
+		(*t)->h = libtarmod_hash_new(16, (libtarmod_hashfunc_t)dev_hash);
 	if ((*t)->h == NULL)
 	{
 		free(*t);
@@ -102,7 +102,7 @@ tar_open(TAR **t, const char *pathname, tartype_t *type,
 	(*t)->fd = (*((*t)->type->openfunc))((*t)->opaque, pathname, oflags, mode);
 	if ((*t)->fd == (void *)-1)
 	{
-		libtar_hash_free((*t)->h, NULL);
+		libtarmod_hash_free((*t)->h, NULL);
 		free(*t);
 		return -1;
 	}
@@ -144,9 +144,9 @@ tar_close(TAR *t)
 	i = (*(t->type->closefunc))(t->opaque, t->fd);
 
 	if (t->h != NULL)
-		libtar_hash_free(t->h, ((t->oflags & O_ACCMODE) == O_RDONLY
+		libtarmod_hash_free(t->h, ((t->oflags & O_ACCMODE) == O_RDONLY
 					? free
-					: (libtar_freefunc_t)tar_dev_free));
+					: (libtarmod_freefunc_t)tar_dev_free));
 	if (t->th_pathname != NULL)
 		free(t->th_pathname);
 	free(t);
@@ -158,7 +158,7 @@ tar_close(TAR *t)
 struct tar_dev
 {
 	dev_t td_dev;
-	libtar_hash_t *td_h;
+	libtarmod_hash_t *td_h;
 };
 typedef struct tar_dev tar_dev_t;
 
@@ -174,7 +174,7 @@ typedef struct tar_ino tar_ino_t;
 void
 tar_dev_free(tar_dev_t *tdp)
 {
-	libtar_hash_free(tdp->td_h, free);
+	libtarmod_hash_free(tdp->td_h, free);
 	free(tdp);
 }
 
@@ -185,7 +185,7 @@ tar_append_file(TAR *t, const char *realname, const char *savename)
 {
 	struct stat s;
 	int i;
-	libtar_hashptr_t hp;
+	libtarmod_hashptr_t hp;
 	tar_dev_t *td = NULL;
 	tar_ino_t *ti = NULL;
 	char path[MAXPATHLEN];
@@ -221,10 +221,10 @@ tar_append_file(TAR *t, const char *realname, const char *savename)
 #ifdef DEBUG
 	puts("    tar_append_file(): checking inode cache for hardlink...");
 #endif
-	libtar_hashptr_reset(&hp);
-	if (libtar_hash_getkey(t->h, &hp, &(s.st_dev),
-			       (libtar_matchfunc_t)dev_match) != 0)
-		td = (tar_dev_t *)libtar_hashptr_data(&hp);
+	libtarmod_hashptr_reset(&hp);
+	if (libtarmod_hash_getkey(t->h, &hp, &(s.st_dev),
+			       (libtarmod_matchfunc_t)dev_match) != 0)
+		td = (tar_dev_t *)libtarmod_hashptr_data(&hp);
 	else
 	{
 #ifdef DEBUG
@@ -233,17 +233,17 @@ tar_append_file(TAR *t, const char *realname, const char *savename)
 #endif
 		td = (tar_dev_t *)calloc(1, sizeof(tar_dev_t));
 		td->td_dev = s.st_dev;
-		td->td_h = libtar_hash_new(256, (libtar_hashfunc_t)ino_hash);
+		td->td_h = libtarmod_hash_new(256, (libtarmod_hashfunc_t)ino_hash);
 		if (td->td_h == NULL)
 			return -1;
-		if (libtar_hash_add(t->h, td) == -1)
+		if (libtarmod_hash_add(t->h, td) == -1)
 			return -1;
 	}
-	libtar_hashptr_reset(&hp);
-	if (libtar_hash_getkey(td->td_h, &hp, &(s.st_ino),
-			       (libtar_matchfunc_t)ino_match) != 0)
+	libtarmod_hashptr_reset(&hp);
+	if (libtarmod_hash_getkey(td->td_h, &hp, &(s.st_ino),
+			       (libtarmod_matchfunc_t)ino_match) != 0)
 	{
-		ti = (tar_ino_t *)libtar_hashptr_data(&hp);
+		ti = (tar_ino_t *)libtarmod_hashptr_data(&hp);
 #ifdef DEBUG
 		printf("    tar_append_file(): encoding hard link \"%s\" "
 		       "to \"%s\"...\n", realname, ti->ti_name);
@@ -264,7 +264,7 @@ tar_append_file(TAR *t, const char *realname, const char *savename)
 		ti->ti_ino = s.st_ino;
 		snprintf(ti->ti_name, sizeof(ti->ti_name), "%s",
 			 savename ? savename : realname);
-		libtar_hash_add(td->td_h, ti);
+		libtarmod_hash_add(td->td_h, ti);
 	}
 
 	/* check if it's a symlink */
@@ -1179,10 +1179,10 @@ tar_extract_file(TAR *t, char *realname)
 	strcpy(&lnp[0], th_get_pathname(t));
 	strcpy(&lnp[pathname_len], realname);
 #ifdef DEBUG
-	printf("tar_extract_file(): calling libtar_hash_add(): key=\"%s\", "
+	printf("tar_extract_file(): calling libtarmod_hash_add(): key=\"%s\", "
 	       "value=\"%s\"\n", th_get_pathname(t), realname);
 #endif
-	if (libtar_hash_add(t->h, lnp) != 0)
+	if (libtarmod_hash_add(t->h, lnp) != 0)
 		return -1;
 
 	return 0;
@@ -1329,7 +1329,7 @@ tar_extract_hardlink(TAR * t, char *realname)
 	char *filename;
 	char *linktgt = NULL;
 	char *lnp;
-	libtar_hashptr_t hp;
+	libtarmod_hashptr_t hp;
 
 	if (!TH_ISLNK(t))
 	{
@@ -1340,11 +1340,11 @@ tar_extract_hardlink(TAR * t, char *realname)
 	filename = (realname ? realname : th_get_pathname(t));
 	if (mkdirhier(t, dirname(filename)) == -1)
 		return -1;
-	libtar_hashptr_reset(&hp);
-	if (libtar_hash_getkey(t->h, &hp, th_get_linkname(t),
-			       (libtar_matchfunc_t)libtar_str_match) != 0)
+	libtarmod_hashptr_reset(&hp);
+	if (libtarmod_hash_getkey(t->h, &hp, th_get_linkname(t),
+			       (libtarmod_matchfunc_t)libtarmod_str_match) != 0)
 	{
-		lnp = (char *)libtar_hashptr_data(&hp);
+		lnp = (char *)libtarmod_hashptr_data(&hp);
 		linktgt = &lnp[strlen(lnp) + 1];
 	}
 	else
