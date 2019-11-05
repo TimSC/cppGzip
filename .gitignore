@@ -1,4 +1,6 @@
 testgzip
 testdeflate
 testgzipseek
+testtar
+testtargz
 *.o

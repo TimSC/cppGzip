@@ -308,6 +308,12 @@ DecodeGzipFastSeek::~DecodeGzipFastSeek()
 
 std::streampos DecodeGzipFastSeek::seekpos (std::streampos sp, std::ios_base::openmode which)
 {	
+	//Check if we can skip seeking
+	int curPos = this->seekoff(0, ios_base::cur, ios_base::in | ios_base::out);
+	if(sp == curPos)
+		return sp;
+
+	//Find index point just before where we need
 	bool found = false;
 	size_t bestIndex = 0;
 	for(size_t i=0; i < index.size(); i++)
@@ -326,7 +332,6 @@ std::streampos DecodeGzipFastSeek::seekpos (std::streampos sp, std::ios_base::op
 
 	//If forward seek would be more effective, use that method
 	const class DecodeGzipPoint &pt = index[bestIndex];
-	int curPos = this->seekoff(0, ios_base::cur, ios_base::in | ios_base::out);
 	if(curPos <= sp and curPos >= pt.bytesDecodedOut)
 		return DecodeGzip::seekpos(sp);
 
