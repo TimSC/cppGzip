@@ -324,7 +324,11 @@ std::streampos DecodeGzipFastSeek::seekpos (std::streampos sp, std::ios_base::op
 	if(!found || sp == 0)
 		return DecodeGzip::seekpos(sp);
 
+	//If forward seek would be more effective, use that method
 	const class DecodeGzipPoint &pt = index[bestIndex];
+	int curPos = this->seekoff(0, ios_base::cur, ios_base::in | ios_base::out);
+	if(curPos <= sp and curPos >= pt.bytesDecodedOut)
+		return DecodeGzip::seekpos(sp);
 
 	streampos actualSeekTarget = pt.bytesDecodedIn - (pt.bits ? 1 : 0);
 	streampos isp = inStream.pubseekpos(actualSeekTarget);
