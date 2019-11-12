@@ -18,9 +18,9 @@
 #include <errno.h>
 #include <sys/param.h>
 
-# include <string.h>
-# include <stdlib.h>
-
+#include <string.h>
+#include <stdlib.h>
+#include <bsd/string.h>
 
 /*
 ** libtarmod_listptr_reset() - reset a list pointer

@@ -17,10 +17,7 @@
 
 #include <stdio.h>
 #include <errno.h>
-
-#ifdef STDC_HEADERS
-# include <stdlib.h>
-#endif
+#include <stdlib.h>
 
 
 /*
