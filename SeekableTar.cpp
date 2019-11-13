@@ -4,7 +4,8 @@
 #include <unistd.h>
 #include <fstream>
 #include <sstream>
-#include "tar.h"
+#include <string.h>
+#include "SeekableTar.h"
 
 using namespace std;
 
@@ -17,6 +18,7 @@ SeekableTarEntry::SeekableTarEntry(class SeekableTarRead *parentTar, size_t entr
 {
 	cursorPos = 0;
 	header = &parentTar->fileList[entryIndex];
+	entrySize = th_get_size2(parentTar->fileList[entryIndex]);
 }
 
 SeekableTarEntry::~SeekableTarEntry()
@@ -26,30 +28,82 @@ SeekableTarEntry::~SeekableTarEntry()
 
 std::streamsize SeekableTarEntry::xsgetn (char* s, std::streamsize n)
 {
-	std::streamsize avail = this->showmanyc();
+	std::streamsize avail = entrySize - cursorPos;
+	if(avail == 0) return 0;
+
+	//See if read buffer can help
+
+
+	//Read more into read buffer
+	size_t startBlock = cursorPos / T_BLOCKSIZE;
+	size_t endBlock = startBlock + 5;
+	std::stringbuf blocks;
+	parentTar->ExtractBlocks(this->entryIndex, startBlock, endBlock, blocks);
+	this->readBuff = blocks.str();
+	this->readBuffPos = startBlock * T_BLOCKSIZE;
+	if(cursorPos < this->readBuffPos)
+		throw runtime_error("Internal error seeking tar");
+
+	//Get subset of read buffer for output
+	size_t posInBuffer = cursorPos - this->readBuffPos;
+	size_t bytesRemaining = this->readBuff.size() - posInBuffer;	
+	size_t bytesToCopy = n;
+	if(bytesToCopy > bytesRemaining)
+		bytesToCopy = bytesRemaining;
 	
+	memcpy(s, &this->readBuff[posInBuffer], bytesToCopy);
+	this->cursorPos += bytesToCopy;
+	return bytesToCopy;
 }
 
 int SeekableTarEntry::uflow()
 {
-
+	char out = 0x00;
+	int count = this->xsgetn(&out, 1);
+	if(count == 0) return EOF;
+	return out;
 }
 
 std::streamsize SeekableTarEntry::showmanyc()
 {
-	std::streamsize size = (unsigned int)oct_to_int(header->size);
-	return size - cursorPos;
+	return entrySize - cursorPos;
 }
 
 std::streampos SeekableTarEntry::seekpos (std::streampos sp, std::ios_base::openmode which)
 {
-
+	if(sp > entrySize)
+		sp = entrySize;
+	this->cursorPos = sp;
+	return this->cursorPos;
 }
 
 std::streampos SeekableTarEntry::seekoff (std::streamoff off, std::ios_base::seekdir way,
                std::ios_base::openmode which)
 {
+	if(way == ios_base::beg)
+	{
+		if(off < 0)
+			return this->seekpos (0, which);
+		return this->seekpos (off, which);
+	}
+	if(way == ios_base::cur)
+	{
+		if(off == 0)
+			return this->cursorPos;
+		std::streamoff pos = (std::streamoff)this->cursorPos + off;
+		if(pos < 0)
+			pos = 0;
+		return this->seekpos (pos, which);
+	}
+	if(way == ios_base::end)
+	{
+		std::streamoff pos = (std::streamoff)this->entrySize + off;
+		if(pos < 0)
+			pos = 0;
+		return this->seekpos (pos, which);
+	}
 
+	return -1;
 }
 
 // **** Callbacks ****
@@ -97,6 +151,12 @@ ssize_t seektar_outwritefunc(void *ptr, void *handle, const void *buffer, size_t
 {
 	class SeekableTarRead *obj = (class SeekableTarRead *)(ptr);
 	return obj->_WriteOutFunc(buffer, size);
+}
+
+ssize_t seektar_stringwritefunc(void *ptr, void *handle, const void *buffer, size_t size)
+{
+	std::streambuf *outStream = (std::streambuf *)handle;
+	return outStream->sputn((char *)buffer, size);
 }
 
 // ***********************************************************
@@ -160,42 +220,33 @@ int SeekableTarRead::ExtractByIndex(size_t index, std::streambuf &outStream)
 	return ret;
 }
 
-int SeekableTarRead::ExtractByIndexAndOffset(size_t index, std::streampos pos, std::streamsize len, std::streambuf &outStream)
+int SeekableTarRead::ExtractBlocks(size_t index, size_t startBlock, size_t endBlock, std::streambuf &outStream)
 {
 	this->outSt = &outStream;
 	const tar_header &th = fileList[index];
 	pTar->th_buf = th;
-	st.pubseekpos(fileInPos[index]);
-/*
-	void *fdout = pTar->type->outopenfunc(pTar->opaque, "", O_WRONLY | O_CREAT | O_TRUNC, 0666);
-	char buf[T_BLOCKSIZE];
-	size_t size = th_get_size(pTar);
+	size_t startPos = startBlock * T_BLOCKSIZE;
+	st.pubseekpos(fileInPos[index] + startPos);
 
-	// extract the file
-	for (int i = size; i > 0; i -= T_BLOCKSIZE)
-	{
-		cout << (st.pubseekoff(0, ios_base::cur)-fileInPos[index]) << endl;
-		int k = tar_block_read(pTar, buf);
-		if (k != T_BLOCKSIZE)
-		{
-			if (k != -1)
-				errno = EINVAL;
-			pTar->type->outclosefunc(pTar->opaque, fdout);
-			return -1;
-		}
+	unsigned int fileSize = th_get_size(pTar);
+	if (startPos >= fileSize)
+		return -1; //Position is after end of file
 
-		// write block to output file 
-		if (pTar->type->outwritefunc(pTar->opaque, fdout, buf,
-			  ((i > T_BLOCKSIZE) ? T_BLOCKSIZE : i)) == -1)
-		{
-			pTar->type->outclosefunc(pTar->opaque, fdout);
-			return -1;
-		}
-	}
+	size_t bytesRemain = fileSize - startPos;
+	size_t bytesToGet = (endBlock - startBlock) * T_BLOCKSIZE;
+	if(bytesToGet > bytesRemain)
+		bytesToGet = bytesRemain;
 
-	outSt = nullptr;*/
-	return 0;
-	
+	int ok = tar_extract_regfile_blocks(pTar, (void *)&outStream, 
+		bytesToGet, seektar_stringwritefunc);
+
+	outSt = nullptr;
+	return ok;
+}
+
+size_t SeekableTarRead::GetEntrySize(size_t index)
+{
+	return th_get_size2(fileList[index]);
 }
 
 std::shared_ptr<class SeekableTarEntry> SeekableTarRead::GetEntry(size_t index)

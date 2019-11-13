@@ -21,7 +21,11 @@ protected:
 	class SeekableTarRead *parentTar;
 	size_t entryIndex;
 	size_t cursorPos;
+	size_t entrySize;
 	tar_header *header;
+
+	std::string readBuff;
+	size_t readBuffPos;
 
 public:
 	SeekableTarEntry(class SeekableTarRead *parentTar, size_t entryIndex);
@@ -37,7 +41,8 @@ public:
 
 	int BuildIndex();
 	int ExtractByIndex(size_t index, std::streambuf &outStream);
-	int ExtractByIndexAndOffset(size_t index, std::streampos pos, std::streamsize len, std::streambuf &outStream);
+	int ExtractBlocks(size_t index, size_t startBlock, size_t endBlock, std::streambuf &outStream);
+	size_t GetEntrySize(size_t index);
 
 	std::shared_ptr<class SeekableTarEntry> GetEntry(size_t index);
 
@@ -50,6 +55,7 @@ public:
 	std::streambuf *outSt;
 	std::vector<tar_header> fileList;
 private:
+
 	std::vector<std::streampos> fileInPos;
 	TAR *pTar;
 	std::string readBuf;

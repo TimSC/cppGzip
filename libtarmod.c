@@ -50,6 +50,8 @@ int sys_lseekfunc(void *opaque, void *h, uint64_t offset, int whence)
 	return lseek(*(int *)&h, offset, whence);
 }
 
+/***** handle.c ************************************************************/
+
 static tartype_t default_type = { sys_openfunc, sys_closefunc, sys_readfunc, sys_writefunc, sys_lseekfunc,
 	sys_mkdirfunc,
 	sys_openfunc, sys_closefunc, sys_readfunc, sys_writefunc };
@@ -159,6 +161,7 @@ tar_close(TAR *t)
 	return i;
 }
 
+/***** append.c ************************************************************/
 
 struct tar_dev
 {
@@ -393,6 +396,7 @@ fail:
 	return rv;
 }
 
+/***** block.c *************************************************************/
 
 #define BIT_ISSET(bitmask, bit) ((bitmask) & (bit))
 
@@ -776,6 +780,7 @@ th_write(TAR *t)
 	return 0;
 }
 
+/***** decode.c ************************************************************/
 
 /* determine full path name */
 char *
@@ -882,6 +887,7 @@ th_get_mode(TAR *t)
 	return mode;
 }
 
+/***** encode.c ************************************************************/
 
 /* magic, version, and checksum */
 void
@@ -905,7 +911,6 @@ th_finish(TAR *t)
 
 	int_to_oct(th_crc_calc(t), t->th_buf.chksum, 8);
 }
-
 
 /* map a file mode to a typeflag */
 void
@@ -1070,8 +1075,7 @@ th_set_from_stat(TAR *t, struct stat *s)
 		th_set_size(t, 0);
 }
 
-// ******************************************************
-
+/***** extract.c ***********************************************************/
 
 static int
 tar_set_file_perms(TAR *t, char *realname)
@@ -1196,6 +1200,29 @@ tar_extract_file(TAR *t, char *realname)
 
 /* extract regular file */
 int
+tar_extract_regfile_blocks(TAR *t, void *fdout, size_t size, writefunc_t outfunc)
+{
+	char buf[T_BLOCKSIZE];
+
+	/* extract the file */
+	for (int i = size; i > 0; i -= T_BLOCKSIZE)
+	{
+		int k = tar_block_read(t, buf);
+		if (k != T_BLOCKSIZE)
+			return -1;
+
+		/* write block to output file */
+		if (outfunc(t->opaque, fdout, buf,
+			  ((i > T_BLOCKSIZE) ? T_BLOCKSIZE : i)) == -1)
+			return -1;
+	}
+
+	return 0;
+}
+
+
+/* extract regular file */
+int
 tar_extract_regfile(TAR *t, char *realname)
 {
 	mode_t mode;
@@ -1203,8 +1230,6 @@ tar_extract_regfile(TAR *t, char *realname)
 	uid_t uid;
 	gid_t gid;
 	void *fdout;
-	int i, k;
-	char buf[T_BLOCKSIZE];
 	char *filename;
 
 #ifdef DEBUG
@@ -1265,25 +1290,9 @@ tar_extract_regfile(TAR *t, char *realname)
 #endif
 
 	/* extract the file */
-	for (i = size; i > 0; i -= T_BLOCKSIZE)
-	{
-		k = tar_block_read(t, buf);
-		if (k != T_BLOCKSIZE)
-		{
-			if (k != -1)
-				errno = EINVAL;
-			t->type->outclosefunc(t->opaque, fdout);
-			return -1;
-		}
-
-		/* write block to output file */
-		if (t->type->outwritefunc(t->opaque, fdout, buf,
-			  ((i > T_BLOCKSIZE) ? T_BLOCKSIZE : i)) == -1)
-		{
-			t->type->outclosefunc(t->opaque, fdout);
-			return -1;
-		}
-	}
+	int k = tar_extract_regfile_blocks(t, fdout, size, t->type->outwritefunc);
+	if (k != 0)
+		errno = EINVAL;
 
 	/* close output file */
 	if (t->type->outclosefunc(t->opaque, fdout) == -1)
@@ -1578,7 +1587,7 @@ tar_extract_fifo(TAR *t, char *realname)
 	return 0;
 }
 
-// ***************************************************
+/***** output.c ************************************************************/
 
 
 #ifndef _POSIX_LOGIN_NAME_MAX
@@ -1688,7 +1697,7 @@ th_print_long_ls(TAR *t)
 	putchar('\n');
 }
 
-// ************************************************
+/***** util.c *************************************************************/
 
 
 /* hashing function for pathnames */
@@ -1830,7 +1839,7 @@ int_to_oct_nonull(int num, char *oct, size_t octlen)
 	oct[octlen - 1] = ' ';
 }
 
-// **************************************
+/***** wrapper.c **********************************************************/
 
 
 int

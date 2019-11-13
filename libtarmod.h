@@ -158,6 +158,8 @@ int tar_append_file(TAR *t, const char *realname, const char *savename);
 /* write EOF indicator */
 int tar_append_eof(TAR *t);
 
+int tar_extract_regfile_blocks(TAR *t, void *fdout, size_t size, writefunc_t outfunc);
+
 /* add file contents to a tarchive */
 int tar_append_regfile(TAR *t, const char *realname);
 
@@ -207,6 +209,7 @@ int th_write(TAR *t);
    from occurring on systems where size_t is bigger than int,
    since th_get_size() is often stored into a size_t. */
 #define th_get_size(t) ((unsigned int)oct_to_int((t)->th_buf.size))
+#define th_get_size2(th_buf) ((unsigned int)oct_to_int(th_buf.size))
 #define th_get_mtime(t) oct_to_int((t)->th_buf.mtime)
 #define th_get_devmajor(t) oct_to_int((t)->th_buf.devmajor)
 #define th_get_devminor(t) oct_to_int((t)->th_buf.devminor)

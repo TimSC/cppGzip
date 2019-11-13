@@ -2,7 +2,7 @@
 #include <fstream>
 #include <sstream>
 #include <time.h>
-#include "tar.h"
+#include "SeekableTar.h"
 #include "DecodeGzip.h"
 using namespace std;
 
