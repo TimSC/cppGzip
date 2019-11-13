@@ -20,6 +20,7 @@ I hacked the original libtar so it supports in memory reading and writing
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <stdint.h>
 #include <tar.h>
 #include "libtarmod_listhash.h"
 
@@ -71,6 +72,7 @@ typedef int (*closefunc_t)(void *, void *);
 typedef ssize_t (*readfunc_t)(void *, void *, void *, size_t);
 typedef ssize_t (*writefunc_t)(void *, void *, const void *, size_t);
 typedef int (*mkdirfunc_t)(void *, const char *pathname, mode_t mode);
+typedef uint64_t (*lseekfunc_t)(void *, void *h, uint64_t offset, int whence);
 
 typedef struct
 {
@@ -78,6 +80,7 @@ typedef struct
 	closefunc_t closefunc;
 	readfunc_t readfunc;
 	writefunc_t writefunc;
+	lseekfunc_t seekfunc;
 
 	mkdirfunc_t mkdirfunc;
 

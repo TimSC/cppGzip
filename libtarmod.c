@@ -45,7 +45,12 @@ int sys_mkdirfunc(void *opaque, const char *pathname, mode_t mode)
 	return mkdir(pathname, mode);
 }
 
-static tartype_t default_type = { sys_openfunc, sys_closefunc, sys_readfunc, sys_writefunc,
+int sys_lseekfunc(void *opaque, void *h, uint64_t offset, int whence)
+{
+	return lseek(*(int *)&h, offset, whence);
+}
+
+static tartype_t default_type = { sys_openfunc, sys_closefunc, sys_readfunc, sys_writefunc, sys_lseekfunc,
 	sys_mkdirfunc,
 	sys_openfunc, sys_closefunc, sys_readfunc, sys_writefunc };
 
@@ -1296,7 +1301,7 @@ tar_extract_regfile(TAR *t, char *realname)
 int
 tar_skip_regfile(TAR *t)
 {
-	int i, k;
+	int i;
 	size_t size;
 	char buf[T_BLOCKSIZE];
 
@@ -1306,16 +1311,23 @@ tar_skip_regfile(TAR *t)
 		return -1;
 	}
 
+	uint64_t posStart = t->type->seekfunc(t->opaque, t->fd, 0, SEEK_CUR);
+
 	size = th_get_size(t);
-	for (i = size; i > 0; i -= T_BLOCKSIZE)
+	int blockRemainder = (size % T_BLOCKSIZE) > 0;
+	size_t roundUpToBlock = (size / T_BLOCKSIZE + blockRemainder) * T_BLOCKSIZE;
+	uint64_t pos = t->type->seekfunc(t->opaque, t->fd, roundUpToBlock, SEEK_CUR);
+
+	if(posStart == (uint64_t)-1 || pos == (uint64_t)-1)
 	{
-		k = tar_block_read(t, buf);
-		if (k != T_BLOCKSIZE)
-		{
-			if (k != -1)
-				errno = EINVAL;
-			return -1;
-		}
+		errno = EINVAL;
+		return -1;
+	}
+
+	if (pos != posStart + roundUpToBlock)
+	{
+		errno = EINVAL;
+		return -1;
 	}
 
 	return 0;

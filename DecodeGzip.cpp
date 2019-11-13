@@ -262,10 +262,21 @@ streampos DecodeGzip::seekpos (streampos sp, ios_base::openmode which = ios_base
 streampos DecodeGzip::seekoff (streamoff off, ios_base::seekdir way,
                    ios_base::openmode which = ios_base::in | ios_base::out)
 {
-	if(off == 0 and way == ios_base::cur)
+	if(way == ios_base::beg)
+	{
+		return this->seekpos(off);
+	}
+
+	if(way == ios_base::cur)
 	{
 		streamsize bytesInDecodeBuff = (char *)d_stream.next_out - decodeBuffCursor;
-		return this->bytesDecodedOut - (bytesInDecodeBuff);
+		streampos pos = this->bytesDecodedOut - bytesInDecodeBuff;
+
+		if(off == 0)
+			return pos; //Return cursor position
+
+		streampos targetPos = pos + off;
+		return this->seekpos(targetPos);
 	}
 
 	return -1;

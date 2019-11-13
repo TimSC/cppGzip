@@ -17,12 +17,21 @@ int main(int argc, char *argv[])
 
 	std::filebuf testIn;
 	testIn.open(infi, std::ios::in | std::ios::binary );
+	if (!testIn.is_open())
+	{
+		cout << "Error opening input file" << endl;
+		exit(-1);
+	}
 
 	class SeekableTarRead seekableTarRead(testIn);
 
 	cout << "Building Index" << endl;
-	seekableTarRead.BuildIndex();
-	cout << "Done!" << endl;
+	int ret = seekableTarRead.BuildIndex();
+	if(ret != 0)
+	{
+		cout << "Failed" << endl; exit(0);
+	}
+	cout << "Done! found " << seekableTarRead.fileList.size() << " regular files" << endl;
 	
 	//Extract a random file from archive
 	if(seekableTarRead.fileList.size()>0)
@@ -34,6 +43,12 @@ int main(int argc, char *argv[])
 			stringbuf buffWrap;
 			cout << "ret " << seekableTarRead.ExtractByIndex(index, buffWrap) << endl;
 			cout << "size " << buffWrap.str().size() << endl;
+
+			/*stringbuf buffWrap2;
+			cout << "ret " << seekableTarRead.ExtractByIndexAndOffset(index, 0, 0, buffWrap2) << endl;
+			cout << "size " << buffWrap2.str().size() << endl;*/
+
 		}
 	}
+	return 0;
 }

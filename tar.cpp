@@ -8,6 +8,50 @@
 
 using namespace std;
 
+// ***********************************
+
+SeekableTarEntry::SeekableTarEntry(class SeekableTarRead *parentTar, size_t entryIndex):
+	std::streambuf(),
+	parentTar(parentTar),
+	entryIndex(entryIndex)
+{
+	cursorPos = 0;
+	header = &parentTar->fileList[entryIndex];
+}
+
+SeekableTarEntry::~SeekableTarEntry()
+{
+
+}
+
+std::streamsize SeekableTarEntry::xsgetn (char* s, std::streamsize n)
+{
+	std::streamsize avail = this->showmanyc();
+	
+}
+
+int SeekableTarEntry::uflow()
+{
+
+}
+
+std::streamsize SeekableTarEntry::showmanyc()
+{
+	std::streamsize size = (unsigned int)oct_to_int(header->size);
+	return size - cursorPos;
+}
+
+std::streampos SeekableTarEntry::seekpos (std::streampos sp, std::ios_base::openmode which)
+{
+
+}
+
+std::streampos SeekableTarEntry::seekoff (std::streamoff off, std::ios_base::seekdir way,
+               std::ios_base::openmode which)
+{
+
+}
+
 // **** Callbacks ****
 
 void * seektar_openfunc(void *ptr, const char *filename, int flags, mode_t mode, ...)
@@ -30,6 +74,13 @@ ssize_t seektar_readfunc(void *ptr, void *handle, void *buffer, size_t size)
 int seektar_mkdirfunc(void *opaque, const char *pathname, mode_t mode)
 {
 	return 0;
+}
+
+uint64_t seektar_lseekfunc(void *ptr, void *handle, uint64_t offset, int whence)
+{
+	class SeekableTarRead *obj = (class SeekableTarRead *)(ptr);
+	uint64_t ret = obj->_SeekInFunc(offset, whence);
+	return ret;
 }
 
 void * seektar_outopenfunc(void *ptr, const char *filename, int flags, mode_t mode, ...)
@@ -59,6 +110,7 @@ SeekableTarRead::SeekableTarRead(std::streambuf &inStream):st(inStream)
 	funcs.openfunc = seektar_openfunc;
 	funcs.closefunc = seektar_closefunc;
 	funcs.readfunc = seektar_readfunc;
+	funcs.seekfunc = seektar_lseekfunc;
 
 	funcs.mkdirfunc = seektar_mkdirfunc;
 
@@ -108,9 +160,58 @@ int SeekableTarRead::ExtractByIndex(size_t index, std::streambuf &outStream)
 	return ret;
 }
 
+int SeekableTarRead::ExtractByIndexAndOffset(size_t index, std::streampos pos, std::streamsize len, std::streambuf &outStream)
+{
+	this->outSt = &outStream;
+	const tar_header &th = fileList[index];
+	pTar->th_buf = th;
+	st.pubseekpos(fileInPos[index]);
+/*
+	void *fdout = pTar->type->outopenfunc(pTar->opaque, "", O_WRONLY | O_CREAT | O_TRUNC, 0666);
+	char buf[T_BLOCKSIZE];
+	size_t size = th_get_size(pTar);
+
+	// extract the file
+	for (int i = size; i > 0; i -= T_BLOCKSIZE)
+	{
+		cout << (st.pubseekoff(0, ios_base::cur)-fileInPos[index]) << endl;
+		int k = tar_block_read(pTar, buf);
+		if (k != T_BLOCKSIZE)
+		{
+			if (k != -1)
+				errno = EINVAL;
+			pTar->type->outclosefunc(pTar->opaque, fdout);
+			return -1;
+		}
+
+		// write block to output file 
+		if (pTar->type->outwritefunc(pTar->opaque, fdout, buf,
+			  ((i > T_BLOCKSIZE) ? T_BLOCKSIZE : i)) == -1)
+		{
+			pTar->type->outclosefunc(pTar->opaque, fdout);
+			return -1;
+		}
+	}
+
+	outSt = nullptr;*/
+	return 0;
+	
+}
+
+std::shared_ptr<class SeekableTarEntry> SeekableTarRead::GetEntry(size_t index)
+{
+	return make_shared<class SeekableTarEntry>(this, index);
+}
+
 int SeekableTarRead::_ReadInFunc(const void *buffer, size_t size)
 {
 	return st.sgetn((char*)buffer, size);
+}
+
+uint64_t SeekableTarRead::_SeekInFunc(uint64_t pos, int whence)
+{
+	streampos posOut = st.pubseekoff(pos, (ios_base::seekdir)whence);
+	return posOut;
 }
 
 int SeekableTarRead::_WriteOutFunc(const void *buffer, size_t size)

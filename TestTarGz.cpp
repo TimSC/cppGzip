@@ -18,6 +18,11 @@ int main(int argc, char *argv[])
 
 	std::filebuf testIn;
 	testIn.open(infi, std::ios::in | std::ios::binary );
+	if (!testIn.is_open())
+	{
+		cout << "Error opening input file" << endl;
+		exit(-1);
+	}
 
 	DecodeGzipIndex index;
 	CreateDecodeGzipIndex(testIn, index);
@@ -27,7 +32,11 @@ int main(int argc, char *argv[])
 	class SeekableTarRead seekableTarRead(decodeGzip);
 
 	cout << "Building Index" << endl;
-	seekableTarRead.BuildIndex();
+	int ret = seekableTarRead.BuildIndex();
+	if(ret != 0)
+	{
+		cout << "Failed" << endl; exit(0);
+	}
 	cout << "Done!" << endl;
 	
 	//Extract a random file from archive
