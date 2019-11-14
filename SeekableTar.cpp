@@ -19,6 +19,7 @@ SeekableTarEntry::SeekableTarEntry(class SeekableTarRead *parentTar, size_t entr
 	cursorPos = 0;
 	header = &parentTar->fileList[entryIndex];
 	entrySize = th_get_size2(parentTar->fileList[entryIndex]);
+	readaheadBlocks = (1024 * 1024) / T_BLOCKSIZE;
 }
 
 SeekableTarEntry::~SeekableTarEntry()
@@ -30,13 +31,26 @@ std::streamsize SeekableTarEntry::xsgetn (char* s, std::streamsize n)
 {
 	std::streamsize avail = entrySize - cursorPos;
 	if(avail == 0) return 0;
+	if(n == 0) return 0;
 
-	//See if read buffer can help
+	//See if read buffer can help, so we don't need to get more data
+	streamoff readBufferEndPos = readBuffPos + readBuff.size();
+	if(readBuff.size() > 0 && cursorPos >= readBuffPos && (streamoff)cursorPos < readBufferEndPos - 1)
+	{
+		size_t posInBuffer = cursorPos - this->readBuffPos;
+		size_t bytesRemaining = readBuff.size() - posInBuffer;
+		size_t bytesToCopy = n;
+		if(bytesToCopy > bytesRemaining)
+			bytesToCopy = bytesRemaining;		
 
+		memcpy(s, &this->readBuff[posInBuffer], bytesToCopy);
+		this->cursorPos += bytesToCopy;
+		return bytesToCopy;
+	}
 
 	//Read more into read buffer
 	size_t startBlock = cursorPos / T_BLOCKSIZE;
-	size_t endBlock = startBlock + 5;
+	size_t endBlock = startBlock + readaheadBlocks;
 	std::stringbuf blocks;
 	parentTar->ExtractBlocks(this->entryIndex, startBlock, endBlock, blocks);
 	this->readBuff = blocks.str();

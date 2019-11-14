@@ -31,6 +31,7 @@ public:
 	SeekableTarEntry(class SeekableTarRead *parentTar, size_t entryIndex);
 	virtual ~SeekableTarEntry();
 
+	size_t readaheadBlocks;
 };
 
 class SeekableTarRead
