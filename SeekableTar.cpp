@@ -19,7 +19,7 @@ SeekableTarEntry::SeekableTarEntry(class SeekableTarRead *parentTar, size_t entr
 	cursorPos = 0;
 	header = &parentTar->fileList[entryIndex];
 	entrySize = th_get_size2(parentTar->fileList[entryIndex]);
-	readaheadBlocks = (1024 * 1024) / T_BLOCKSIZE;
+	readaheadBlocks = (10 * 1024) / T_BLOCKSIZE;
 }
 
 SeekableTarEntry::~SeekableTarEntry()

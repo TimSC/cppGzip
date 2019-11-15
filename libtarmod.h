@@ -18,7 +18,7 @@ I hacked the original libtar so it supports in memory reading and writing
 #ifndef LIBTAR_H
 #define LIBTAR_H
 
-#include <sys/types.h>
+#include <stdlib.h>
 #include <sys/stat.h>
 #include <stdint.h>
 #include <tar.h>
