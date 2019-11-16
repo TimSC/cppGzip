@@ -76,7 +76,7 @@ public:
 	virtual ~DecodeGzipFastSeek();
 
 protected:
-	const DecodeGzipIndex &index;
+	const DecodeGzipIndex index;
 	
 	std::streampos seekpos (std::streampos sp, std::ios_base::openmode which);
 };
