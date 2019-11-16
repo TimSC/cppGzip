@@ -45,7 +45,7 @@ int sys_mkdirfunc(void *opaque, const char *pathname, mode_t mode)
 	return mkdir(pathname, mode);
 }
 
-int sys_lseekfunc(void *opaque, void *h, uint64_t offset, int whence)
+uint64_t sys_lseekfunc(void *opaque, void *h, uint64_t offset, int whence)
 {
 	return lseek(*(int *)&h, offset, whence);
 }
