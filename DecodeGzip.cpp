@@ -155,8 +155,11 @@ void DecodeGzip::Decode()
 	//Finish and clean up
 	err = inflate(&d_stream, Z_FINISH);
 	if(err != Z_OK && err != Z_STREAM_END)
-		throw runtime_error(ConcatStr("inflate failed: ", zError(err)));
-	
+	{
+		const char *errStr = zError(err);
+		throw runtime_error(ConcatStr("inflate failed: ", errStr));
+	}
+
 	decodeDone = true;
 	decodeBuffCursor = decodeBuff;
 	return;

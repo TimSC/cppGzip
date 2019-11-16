@@ -72,10 +72,11 @@ std::streamsize SeekableTarEntry::xsgetn (char* s, std::streamsize n)
 
 int SeekableTarEntry::uflow()
 {
-	char out = 0x00;
-	int count = this->xsgetn(&out, 1);
-	if(count == 0) return EOF;
-	return out;
+	streamsize inputReady = showmanyc();
+	if(inputReady==0) return EOF;
+	char buff[1];
+	xsgetn(buff, 1);
+	return *(unsigned char *)&(buff[0]);
 }
 
 std::streamsize SeekableTarEntry::showmanyc()
