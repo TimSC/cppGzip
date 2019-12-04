@@ -20,6 +20,7 @@ DecodeGzipPoint::DecodeGzipPoint()
 	bytesDecodedIn = 0;
 	bytesDecodedOut = 0;
 	bits = 0;
+	fileEnd = false;
 }
 
 DecodeGzipPoint::DecodeGzipPoint(const DecodeGzipPoint &obj)
@@ -28,6 +29,7 @@ DecodeGzipPoint::DecodeGzipPoint(const DecodeGzipPoint &obj)
 	bytesDecodedOut = obj.bytesDecodedOut;
 	bits = obj.bits;
 	window = obj.window;
+	fileEnd = obj.fileEnd;
 }
 
 DecodeGzipPoint::~DecodeGzipPoint()
@@ -148,6 +150,17 @@ void DecodeGzip::Decode()
 			{
 				streamEnded = true;
 				d_stream.avail_in = 0;
+
+				if (buildIndex)
+				{
+					class DecodeGzipPoint pt;
+					pt.bytesDecodedIn = bytesDecodedIn;
+					pt.bytesDecodedOut = bytesDecodedOut;
+					pt.fileEnd = true;
+
+					if(indexOut)
+						indexOut->push_back(pt);
+				}
 			}
 		}
 	}
@@ -286,6 +299,20 @@ streampos DecodeGzip::seekoff (streamoff off, ios_base::seekdir way,
 		return this->seekpos(targetPos);
 	}
 
+	if(way == ios_base::end && off == 0)
+	{
+		streamoff bytesInDecodeBuff = (char *)d_stream.next_out - decodeBuffCursor;
+		streamoff pos = this->bytesDecodedOut - bytesInDecodeBuff;
+
+		//Keep reading until we hit the end
+		char tmpbuff[decodeBuffSize];
+		size_t totalRead = pos;
+		while(this->in_avail()>0)
+			totalRead += this->sgetn(tmpbuff, decodeBuffSize);
+
+		return totalRead;
+	}
+
 	return -1;
 }
 
@@ -336,7 +363,7 @@ std::streampos DecodeGzipFastSeek::seekpos (std::streampos sp, std::ios_base::op
 	size_t bestIndex = 0;
 	for(size_t i=0; i < index.size(); i++)
 	{
-		if(index[i].bytesDecodedOut <= sp)
+		if(index[i].bytesDecodedOut <= sp && !index[i].fileEnd)
 		{
 			bestIndex = i;
 			found = true;
@@ -387,6 +414,32 @@ std::streampos DecodeGzipFastSeek::seekpos (std::streampos sp, std::ios_base::op
 	return out;
 }
 
+streampos DecodeGzipFastSeek::seekoff (streamoff off, ios_base::seekdir way,
+                   ios_base::openmode which = ios_base::in | ios_base::out)
+{
+	if(way == ios_base::end)
+	{
+		//Handle special case of seeking relative to file end
+		//Find index point for file end
+		bool found = false;
+		size_t bestIndex = 0;
+		if(index[index.size()-1].fileEnd)
+		{
+			bestIndex = index.size()-1;
+			found = true;
+		}
+
+		if(found)
+		{
+			const class DecodeGzipPoint &pt = index[bestIndex];
+			return this->seekpos((streamoff)pt.bytesDecodedOut + off, which);
+		}
+		return -1;
+	}
+
+	return DecodeGzip::seekoff(off, way, which);
+}
+
 // **************************************
 
 void DecodeGzipQuick(std::streambuf &fb, std::streambuf &out)
@@ -433,7 +486,7 @@ void DecodeGzipQuickFromFilename(const std::string &fina, std::string &out)
 
 // *********************************************************
 
-void CreateDecodeGzipIndex(std::streambuf &inStream, 
+std::streamsize CreateDecodeGzipIndex(std::streambuf &inStream, 
 	DecodeGzipIndex &out,
 	std::streamsize readBuffSize, std::streamsize decodeBuffSize,
 	int windowBits)
@@ -443,9 +496,12 @@ void CreateDecodeGzipIndex(std::streambuf &inStream,
 	dec.indexOut = &out;
 	
 	char tmpbuff[decodeBuffSize];
+	std::streamsize total = 0;
 	while(dec.in_avail()>0)
 	{
-		dec.sgetn(tmpbuff, decodeBuffSize);
+		size_t bytes = dec.sgetn(tmpbuff, decodeBuffSize);
+		total += bytes;
 	}
+	return total;
 }
 

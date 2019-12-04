@@ -207,7 +207,7 @@ SeekableTarRead::~SeekableTarRead()
 int SeekableTarRead::BuildIndex()
 {
 	//Build index for quick access
-	int i=0;	
+	int i=0;
 	while ((i = th_read(pTar)) == 0)
 	{
 		if(TH_ISREG(pTar))

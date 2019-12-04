@@ -15,6 +15,7 @@ public:
 	size_t bytesDecodedOut;
 	int bits;
 	std::string window;
+	bool fileEnd;
 
 	DecodeGzipPoint();
 	DecodeGzipPoint(const DecodeGzipPoint &obj);
@@ -79,6 +80,8 @@ protected:
 	const DecodeGzipIndex index;
 	
 	std::streampos seekpos (std::streampos sp, std::ios_base::openmode which);
+	std::streampos seekoff (std::streamoff off, std::ios_base::seekdir way,
+                   std::ios_base::openmode which);
 };
 
 ///One shot decoding of small files
@@ -88,7 +91,7 @@ void DecodeGzipQuick(std::string &data, std::streambuf &outBuff);
 void DecodeGzipQuick(std::streambuf &inBuff, std::string &out);
 void DecodeGzipQuickFromFilename(const std::string &fina, std::string &out);
 
-void CreateDecodeGzipIndex(std::streambuf &inStream, 
+std::streamsize CreateDecodeGzipIndex(std::streambuf &inStream, 
 	DecodeGzipIndex &out,
 	std::streamsize readBuffSize = 1024*128, std::streamsize decodeBuffSize = 1024*128,
 			int windowBits = MAX_WBITS+DEC_MAGIC_NUM_FOR_GZIP);
