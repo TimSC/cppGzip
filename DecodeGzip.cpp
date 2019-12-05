@@ -221,6 +221,7 @@ streamsize DecodeGzip::xsgetn (char* s, streamsize n)
 			//Mark buffer as empty
 			d_stream.next_out = (Bytef*)this->decodeBuff;
 			d_stream.avail_out = (uInt)decodeBuffSize;
+			decodeBuffCursor = decodeBuff;
 		}
 
 	}
@@ -269,6 +270,7 @@ streampos DecodeGzip::seekpos (streampos sp, ios_base::openmode which = ios_base
 	d_stream.avail_in = (uInt)0;
 	d_stream.next_out = (Bytef*)this->decodeBuff;
 	d_stream.avail_out = (uInt)decodeBuffSize;
+	decodeBuffCursor = decodeBuff;
 
 	inflateReset2(&d_stream, windowBits);
 	
@@ -391,6 +393,7 @@ std::streampos DecodeGzipFastSeek::seekpos (std::streampos sp, std::ios_base::op
 	d_stream.avail_in = (uInt)0;
 	d_stream.next_out = (Bytef*)this->decodeBuff;
 	d_stream.avail_out = (uInt)decodeBuffSize;
+	decodeBuffCursor = decodeBuff;
 
 	//Prepare to resume inflate
 	int ret = inflateReset2(&d_stream, -15);
