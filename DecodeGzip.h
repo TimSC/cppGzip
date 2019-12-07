@@ -93,6 +93,7 @@ void DecodeGzipQuickFromFilename(const std::string &fina, std::string &out);
 
 std::streamsize CreateDecodeGzipIndex(std::streambuf &inStream, 
 	DecodeGzipIndex &out,
+	size_t spanBetweenAccess = 1024*1024, //How often to store seek positions
 	std::streamsize readBuffSize = 1024*128, std::streamsize decodeBuffSize = 1024*128,
 			int windowBits = MAX_WBITS+DEC_MAGIC_NUM_FOR_GZIP);
 

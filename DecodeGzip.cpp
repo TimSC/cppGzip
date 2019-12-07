@@ -491,12 +491,14 @@ void DecodeGzipQuickFromFilename(const std::string &fina, std::string &out)
 
 std::streamsize CreateDecodeGzipIndex(std::streambuf &inStream, 
 	DecodeGzipIndex &out,
+	size_t spanBetweenAccess,
 	std::streamsize readBuffSize, std::streamsize decodeBuffSize,
 	int windowBits)
 {
 	class DecodeGzip dec(inStream, readBuffSize, decodeBuffSize, windowBits);
 	dec.buildIndex = true;
 	dec.indexOut = &out;
+	dec.spanBetweenAccess = spanBetweenAccess;
 	
 	char tmpbuff[decodeBuffSize];
 	std::streamsize total = 0;
