@@ -228,7 +228,12 @@ int SeekableTarRead::ExtractByIndex(size_t index, std::streambuf &outStream)
 	this->outSt = &outStream;
 	const tar_header &th = fileList[index];
 	pTar->th_buf = th;
-	st.pubseekpos(fileInPos[index]);
+
+	size_t seekret = st.pubseekpos(fileInPos[index]);
+	if(seekret != fileInPos[index])
+	{
+		throw runtime_error("Tar input seek failed");
+	}
 
 	int ret = tar_extract_regfile(pTar, pTar->th_buf.name);
 	outSt = nullptr;
